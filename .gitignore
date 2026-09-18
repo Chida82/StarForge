@@ -1,0 +1,8 @@
+# Child repos and the upstream mirror are independent git repos, cloned by tools/clone-all.sh.
+children/*
+!children/README.md
+upstream/*
+!upstream/README.md
+# Parity oracle scratch output
+tools/parity/out/
+.DS_Store
