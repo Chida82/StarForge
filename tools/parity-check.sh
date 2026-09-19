@@ -2,13 +2,15 @@
 # Parity oracle: upstream at the child's merge-base vs the child, same GGUF, same prompts,
 # greedy. Output must be token-identical; tokens/s within ±2%.
 # Usage: tools/parity-check.sh <child> [path/to/model.gguf]
-#   MODEL defaults to <child>/<SF_DEFAULT_MODEL symlink>. Prompts: tools/parity/<child>.txt
-#   Extra per-prompt flags may follow a TAB in the prompt file (e.g. steering).
+#   MODEL defaults to the first GGUF in the child. Prompts: the child's
+#   tests/parity_prompts.txt (created from tools/parity/<child>.txt at bootstrap).
+#   Extra per-prompt flags may follow a TAB (e.g. steering, DSpark, MTP).
 source "$(dirname "$0")/lib.sh"
 name="${1:?usage: parity-check.sh <child> [model.gguf]}"; require_child "$name"; require_upstream
 dir="$(child_dir "$name")"
-prompts="$SF_ROOT/tools/parity/$name.txt"
-[ -f "$prompts" ] || die "no prompt set at $prompts"
+prompts="$dir/tests/parity_prompts.txt"
+[ -f "$prompts" ] || prompts="$SF_ROOT/tools/parity/$name.txt"
+[ -f "$prompts" ] || die "no prompt set for $name"
 model="${2:-}"
 if [ -z "$model" ]; then
     model="$(ls "$dir"/*.gguf 2>/dev/null | head -1)"; [ -n "$model" ] || die "no .gguf in $dir; pass the model path"

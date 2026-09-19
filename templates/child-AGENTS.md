@@ -67,6 +67,16 @@ All in one block of the `Makefile`, each read at exactly one place:
 `DS4_*` environment variables are upstream's and are **not renamed**. Set them
 inline (`DS4_METAL_CB_TIMES=1 ./<CHILD> ...`), never `export`.
 
+## Speculative decoding contract
+
+Follow the Identity row exactly. A DSpark-only child keeps its separate support
+GGUF loader, `--dspark*`, `--mtp-model`, `--mtp-exact-sampling`, DSpark tests,
+and shared speculative helpers even when their names contain `mtp`; it removes
+`DS4_SUPPORT_MTP_LEGACY`, `--mtp`, `--mtp-draft`, `--mtp-margin`,
+`--mtp-timing`, `DS4_TEST_MTP`, and `mtp-verify-depth`. A built-in-MTP child
+keeps only its model's MTP path. A `none` child removes both. Do not infer the
+mechanism from an identifier's name.
+
 ## Build, test, verify
 
 ```sh
@@ -77,9 +87,10 @@ make help            # remaining targets (model-backed tests need a GGUF in gguf
 ```
 
 Model-backed checks before a PR: the kernel tests of this model, `ds4_test`,
-`./<CHILD>-eval`, and the **parity oracle** run from the StarForge
-orchestrator (`tools/parity-check.sh <CHILD>`): upstream at our merge-base vs
-this repo, same GGUF, same prompts (`tests/parity_prompts.txt`), greedy,
+the exact speculative mechanism in Identity (DSpark, MTP, or none),
+`./<CHILD>-eval`, and the **parity oracle** run from the StarForge orchestrator
+(`tools/parity-check.sh <CHILD>`): upstream at our merge-base vs this repo,
+same GGUF(s), same prompts (`tests/parity_prompts.txt`), greedy,
 token-identical output, speed within ±2%.
 
 ## Removing code (ablation)

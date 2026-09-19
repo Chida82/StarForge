@@ -37,11 +37,22 @@ Design decisions that follow from this:
   the activation-capture code it depends on. Present in every child even if
   the model does not support it (DeepSeek V4.1 Flash): upstream's error path
   stays as is.
-- **Speculative decoding** where the model has it: MTP for GLM 5.3 Flash and
-  Qwen3.8. See the registry in AGENTS.md. Where the registry says "none", the
-  whole speculative path is removed (`ds4_session_eval_speculative`,
-  `ds4_engine_mtp_draft_tokens`, DSpark support GGUF, `--mtp*` flags, the
-  `*-verify-depth` Makefile targets, `tests/*dspark*`, `tests/*mtp*`).
+- **Speculative decoding** follows the registry exactly:
+  - DeepSeek V4 Flash: **DSpark only**. Keep the DSpark loader, scheduler,
+    verification/session path, `--dspark`, `--dspark-confidence`,
+    `--dspark-strict`, `--mtp-model` (upstream's shared option name),
+    `--mtp-exact-sampling`, `DS4_DSPARK_*`, `dspark-acceptance`,
+    `dspark-verify-depth`, `tests/*dspark*`, and the matching separate support
+    GGUF `DeepSeek-V4-Flash-DSpark-support-0731.gguf`. Remove the legacy
+    one-stage MTP implementation and its test/download surface:
+    `DS4_SUPPORT_MTP_LEGACY`, `--mtp`, `--mtp-draft`, `--mtp-margin`,
+    `--mtp-timing`, `DS4_TEST_MTP`, `mtp-verify-depth`, and
+    `DeepSeek-V4-Flash-MTP-Q4K-Q8_0-F32.gguf`. Shared functions used by DSpark,
+    including `ds4_session_eval_speculative` and
+    `ds4_engine_mtp_draft_tokens`, stay even though their names contain MTP.
+  - GLM 5.3 Flash and Qwen3.8: built-in MTP; no second support GGUF.
+  - DeepSeek V4.1 Flash: none; remove the entire speculative path that remains
+    after single-model ablation.
 - **Vision** where the registry says so: `ds4_image.c/.h`,
   `third_party/iris`, the model's encoder code and `.metal` kernel, `--vision`,
   `/read image`, server image inputs. Where the registry says "no", all of it
@@ -119,8 +130,10 @@ Design decisions that follow from this:
 **Simplifications that follow from "one model"**
 
 - `download_model.sh` (715 lines, ~30 targets) → `download.sh` taking only a
-  quantization / component name (`q2`, `q4k`, `vision`, ...). Model hardcoded.
-  Keep resume, checksum and the `<default>.gguf` symlink update.
+  quantization / component name (`q2`, `q4k`, `vision`, `dspark`, ...). Model
+  hardcoded. For `sf-ds4flash`, `dspark` downloads only the matching 0731
+  support GGUF; there is no legacy-MTP target. Keep resume, checksum and the
+  `<default>.gguf` symlink update.
 - Default `-m` hardcoded to the child's model file (`SF_DEFAULT_MODEL`); `-m`
   stays for override.
 - `--help` texts, `Makefile help`, README: only what exists.
@@ -193,8 +206,9 @@ Design decisions that follow from this:
   `docs/CLIENTS.md`, `docs/SSD_STREAMING.md`, `docs/DISTRIBUTED.md`,
   `docs/PERFORMANCE.md` (Metal numbers only), `docs/TESTING.md`,
   `dir-steering/README.md`, `EVAL_DATA.md`, `CONTRIBUTING.md`, `AGENT.md`,
-  `QA_BEFORE_RELEASES.md`. Plus `docs/SPECULATIVE_DECODING.md` and the model's
-  own page (`docs/QWEN38_FLASH_NEXT.md`, ...) where applicable.
+  `QA_BEFORE_RELEASES.md`. Plus `docs/SPECULATIVE_DECODING.md` where the child
+  has DSpark or MTP (trimmed to that one mechanism), and the model's own page
+  (`docs/QWEN38_FLASH_NEXT.md`, ...) where applicable.
 - `AGENT.md` (upstream's coding-agent notes) is **kept and trimmed**, not
   renamed: remove goals about CUDA/distributed-only/agent, update the Layout
   section. The child's `AGENTS.md` (from `templates/child-AGENTS.md`) explains
@@ -222,8 +236,10 @@ Tools, in order of preference:
    model's kernel tests, `sf-<model>-eval`) at the end of a session.
 4. **Parity oracle** (`tools/parity-check.sh`): upstream at the merge-base vs
    the child, same GGUF, same prompts, `--temp 0`, token-identical output,
-   tokens/s within ±2%. Run at the end of every ablation session and every
-   sync. It is the definition of "the ablation was correct".
+   tokens/s within ±2%. Its set includes steering and the child's speculative
+   mechanism: DSpark plus the matching support GGUF for `sf-ds4flash`, MTP for
+   GLM/Qwen, none for V4.1. Run it at the end of every ablation session and
+   every sync. It is the definition of "the ablation was correct".
 5. **Doubt left after 1–4 and high** → leave the code, add
    `/* sf-keep: unsure if reachable for <model>, see <issue/commit> */`, mention
    it in the PR. Do not ask the test suite to prove a negative.

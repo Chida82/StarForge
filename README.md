@@ -10,12 +10,12 @@ a normal GitHub repo you can build, read and modify without the other models
 and backends in the way. Children keep merging upstream through plain `git
 merge`, so fixes and speedups from ds4 keep flowing in.
 
-| Child | Model | Binary | Server port |
-|---|---|---|---|
-| `sf-ds4flash`    | DeepSeek V4 Flash   | `sf-ds4flash`    | 8001 |
-| `sf-ds4-1flash`  | DeepSeek V4.1 Flash | `sf-ds4-1flash`  | 8002 |
-| `sf-glm5-3flash` | GLM 5.3 Flash       | `sf-glm5-3flash` | 8003 |
-| `sf-q3-8flash`   | Qwen3.8 Flash Next  | `sf-q3-8flash`   | 8004 |
+| Child | Model | Binary | Server port | Speculative decoding |
+|---|---|---|---|---|
+| `sf-ds4flash`    | DeepSeek V4 Flash   | `sf-ds4flash`    | 8001 | DSpark only; separate 0731 support GGUF; no legacy MTP |
+| `sf-ds4-1flash`  | DeepSeek V4.1 Flash | `sf-ds4-1flash`  | 8002 | none |
+| `sf-glm5-3flash` | GLM 5.3 Flash       | `sf-glm5-3flash` | 8003 | built-in MTP |
+| `sf-q3-8flash`   | Qwen3.8 Flash Next  | `sf-q3-8flash`   | 8004 | built-in MTP |
 
 Each child is a separate repository. **This** repository is the orchestrator:
 rules, procedures, tools, and a read-only mirror of upstream. No inference
@@ -57,7 +57,7 @@ All bash + git + coreutils, in `tools/`:
 | `rm-deleted-conflicts.sh <child>` | resolve modify/delete conflicts by keeping the child's deletions |
 | `parity-check.sh <child> [gguf]` | build upstream at the child's merge-base and the child; same prompts, greedy; token-identical + speed ±2% |
 | `sync-finish.sh <child>` | after the PR is merged: tag `main` as `sync-<sha7>`, push |
-| `parity/<child>.txt` | prompt sets for the oracle (TAB → extra flags, e.g. steering, `--mtp`) |
+| `parity/<child>.txt` | prompt sets for the oracle (TAB → extra flags: steering plus DSpark or MTP per child) |
 | `lib.sh` | shared helpers and the **registry** (keep in sync with `AGENTS.md`) |
 
 ### Layout
@@ -82,7 +82,9 @@ records its own upstream position (tags, merge-base). See `SPEC.md` §H.
 5. The **parity oracle** (same GGUF, same prompts, greedy, token-identical, speed ±2%) is the definition of correct.
 
 Always kept in every child: steering, TP/RDMA, CPU reference path, server,
-CLI, bench, eval. Never in a child: `ds4-agent`, CUDA, ROCm, other models.
+CLI, bench, eval. Speculative decoding follows the table: notably,
+`sf-ds4flash` keeps DSpark but deletes legacy MTP. Never in a child:
+`ds4-agent`, CUDA, ROCm, other models.
 
 ## Status
 

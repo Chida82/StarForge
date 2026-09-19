@@ -7,14 +7,6 @@ Given the JSON {"a":1,"b":[1,2,3]} return the sum of all numbers. Answer with th
 Scrivi tre righe su Palermo.
 What is the capital of Australia? One word.
 Summarize the plot of Hamlet in exactly two sentences.
-# StarForge parity prompts. TAB-separated extra flags are optional.
-Explain what a Redis stream is in one paragraph.
-Write a C function that reverses a singly linked list. Only code.
-List the prime numbers below 50, comma separated.
-Translate to Italian: "The quick brown fox jumps over the lazy dog."
-Given the JSON {"a":1,"b":[1,2,3]} return the sum of all numbers. Answer with the number only.
-Scrivi tre righe su Palermo.
-What is the capital of Australia? One word.
-Summarize the plot of Hamlet in exactly two sentences.
-Describe the sea.	--dir-steering-file dir-steering/examples/PLACEHOLDER.bin --dir-steering-ffn 2.0
-# NOTE: PLACEHOLDER.bin must be replaced at bootstrap with a real steering vector present in the child (see dir-steering/README.md).
+Describe the sea.	--dir-steering-file /ABSOLUTE/PATH/TO/STEERING.bin --dir-steering-ffn 2.0
+Write a haiku about compilers.	--dspark --mtp-model /ABSOLUTE/PATH/TO/DeepSeek-V4-Flash-DSpark-support-0731.gguf
+# NOTE: replace both absolute path placeholders at bootstrap. DSpark is required; legacy MTP is not tested or retained.

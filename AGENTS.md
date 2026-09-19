@@ -31,7 +31,7 @@ upstream/ds4/    plain full clone of upstream (gitignored). Read-only.
 
 | Child | Model | Shape (`ds4.c`) | Port | Home | Lock | Vision | Spec-dec | Repo |
 |---|---|---|---|---|---|---|---|---|
-| `sf-ds4flash`   | DeepSeek V4 Flash     | `DS4_SHAPE_FLASH`   | 8001 | `~/.sf/ds4flash`   | `/tmp/sf-ds4flash.lock`   | no  | none | `Chida82/sf-ds4flash` |
+| `sf-ds4flash`   | DeepSeek V4 Flash     | `DS4_SHAPE_FLASH`   | 8001 | `~/.sf/ds4flash`   | `/tmp/sf-ds4flash.lock`   | no  | DSpark only (no legacy MTP) | `Chida82/sf-ds4flash` |
 | `sf-ds4-1flash` | DeepSeek V4.1 Flash   | `DS4_SHAPE_FLASH41` | 8002 | `~/.sf/ds4-1flash` | `/tmp/sf-ds4-1flash.lock` | yes | none | `Chida82/sf-ds4-1flash` |
 | `sf-glm5-3flash`| GLM 5.3 Flash         | `DS4_SHAPE_GLM53`   | 8003 | `~/.sf/glm5-3flash`| `/tmp/sf-glm5-3flash.lock`| yes | MTP  | `Chida82/sf-glm5-3flash` |
 | `sf-q3-8flash`  | Qwen3.8 Flash Next    | `DS4_SHAPE_QWEN4_EXP` (+`QWEN4_MINI` for tests) | 8004 | `~/.sf/q3-8flash` | `/tmp/sf-q3-8flash.lock` | yes | MTP | `Chida82/sf-q3-8flash` |
@@ -56,15 +56,18 @@ currently stands relative to upstream is **not** recorded here: read its
 4. **Steering stays in every child.** `--dir-steering-file`, `/steer`,
    `dir-steering/`. If the model does not support it, upstream's error stays.
 5. **TP / RDMA / pipeline stay in every child.** The CPU reference path stays.
-6. **Every child has no `ds4-agent`.** Four binaries: CLI, server, bench, eval.
-7. **No on-disk path may collide with upstream ds4 or with another child.**
+6. **Speculative decoding follows the registry exactly.** In particular,
+   `sf-ds4flash` keeps DSpark and its separate 0731 support GGUF, but removes
+   the legacy one-stage MTP path.
+7. **Every child has no `ds4-agent`.** Four binaries: CLI, server, bench, eval.
+8. **No on-disk path may collide with upstream ds4 or with another child.**
    Home, lock, history, default port are per child (see registry).
-8. **Delete, don't `#ifdef`.** A child is smaller code, not the same code
+9. **Delete, don't `#ifdef`.** A child is smaller code, not the same code
    behind flags. Mark in-file cuts with `/* sf-ablate(<area>): ... */`.
-9. **Docs follow code.** A paragraph about a model, backend or binary that is
+10. **Docs follow code.** A paragraph about a model, backend or binary that is
    not in the child is deleted, not adapted. All `.md` files are in English.
-10. **Never `git merge -X ours`.** It silently drops upstream fixes.
-11. **Attribution stays.** `LICENSE` untouched (includes the GGML notice);
+11. **Never `git merge -X ours`.** It silently drops upstream fixes.
+12. **Attribution stays.** `LICENSE` untouched (includes the GGML notice);
     child README opens with the fork notice (SPEC.md §I).
 
 ## Which file for which task

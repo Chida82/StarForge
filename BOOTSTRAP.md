@@ -48,8 +48,12 @@ repo; `git config rerere.enabled` = `true`; `git tag` shows `sync-<sha7>`;
 - Delete agent targets: `ds4-agent`, `ds4_agent.o`, `ds4_agent_cpu.o`,
   `ds4_agent_test*`, `ds4_web.o`, `test-frontends` agent lines,
   `test-web-recovery`. Fix `all`, `cpu`, `test`, `clean`, `help`.
-- Delete speculative targets if the registry says "none": `dspark-*`,
-  `mtp-verify-depth`, `DS4_TEST_MTP`, `DS4_DSPARK_*`.
+- Speculative targets follow the registry:
+  - `DSpark only` (`sf-ds4flash`): keep `DS4_DSPARK_MODEL`,
+    `DS4_DSPARK_SUPPORT`, `dspark-acceptance`, `dspark-verify-depth`; delete
+    `DS4_TEST_MTP` and `mtp-verify-depth` (legacy one-stage MTP).
+  - `MTP`: keep only the model's built-in-MTP targets; delete DSpark targets.
+  - `none`: delete all DSpark/MTP variables and targets.
 
 Commit: `sf: Makefile identity (BIN, SF_* defines), Darwin only, no agent`.
 
@@ -163,15 +167,36 @@ green; binary size dropped; `wc -l ds4.c ds4_metal.m` dropped substantially.
   `metal/<model>_vision.metal`, `tests/*vision*`, `tests/vision-fixtures`,
   `gguf-tools/*vision*`; remove `--vision`, `/read` image branch, server image
   inputs (`ds4_server.c`), `docs/MODELS.md` vision sections. Commit `ablate(vision): …`.
-- Speculative = **none**: remove `ds4_session_eval_speculative`,
-  `ds4_engine_mtp_draft_tokens`, `--mtp*`, DSpark support loading and flags,
-  `tests/*dspark*`, `tests/*mtp*`, `docs/SPECULATIVE_DECODING.md`, README
-  paragraphs. Commit `ablate(specdec): …`.
+- Speculative = **DSpark only** (`sf-ds4flash`):
+  - Keep the DSpark support loader and `DS4_SUPPORT_DSPARK`, scheduler,
+    speculative session/verifier path, `--dspark`, `--dspark-confidence`,
+    `--dspark-strict`, `--mtp-model`, `--mtp-exact-sampling`,
+    `DS4_DSPARK_MODEL`, `DS4_DSPARK_SUPPORT`, `dspark-acceptance`,
+    `dspark-verify-depth`, `tests/dspark_acceptance_fixture.sh`,
+    `tests/test_dspark_*`, and the DSpark-only part of
+    `docs/SPECULATIVE_DECODING.md`.
+  - Keep shared helpers needed by DSpark even when named `mtp`, notably
+    `ds4_session_eval_speculative` and `ds4_engine_mtp_draft_tokens`.
+  - Remove the legacy one-stage path: `DS4_SUPPORT_MTP_LEGACY`, its loader,
+    draft and probe functions, `--mtp`, `--mtp-draft`, `--mtp-margin`,
+    `--mtp-timing`, `DS4_TEST_MTP`, `mtp-verify-depth`, and every reference to
+    `DeepSeek-V4-Flash-MTP-Q4K-Q8_0-F32.gguf`.
+  - `download.sh dspark` downloads exactly
+    `DeepSeek-V4-Flash-DSpark-support-0731.gguf`; do not offer the legacy file.
+  Commit `ablate(specdec): keep DSpark, remove legacy MTP`.
+- Speculative = **none** (`sf-ds4-1flash`): after removing other models, remove
+  all remaining DSpark/MTP code, flags, tests and docs. Commit
+  `ablate(specdec): remove unsupported speculative decoding`.
+- Speculative = **MTP** (GLM/Qwen): retain built-in MTP and remove DSpark plus
+  legacy external-MTP code.
 - Steering: **touch nothing**. Verify it still builds and `--dir-steering-file`
   is in `--help`.
 
-**Check**: `make test` green; `./<child> --help | grep -c 'mtp\|vision'` matches
-the registry (0 where absent); `./<child> --help | grep -c dir-steering` ≥ 1.
+**Check**: `make test` green. For `sf-ds4flash`, `--help` contains DSpark and
+`--mtp-model`, but not `--mtp-draft`/`--mtp-margin`/`--mtp-timing`; both
+`make dspark-acceptance` and `make dspark-verify-depth` exist while
+`make mtp-verify-depth` does not. Other children match their registry.
+`./<child> --help | grep -c dir-steering` ≥ 1.
 
 ## 8. Single-model simplifications
 
@@ -179,8 +204,10 @@ the registry (0 where absent); `./<child> --help | grep -c dir-steering` ≥ 1.
   positional = quantization/component, model name hardcoded, keep resume /
   checksum / symlink update. `git mv` then edit (keeps history).
 - Help texts and README commands use `<child>` names.
-- `tests/parity_prompts.txt` present (copied by `new-child.sh`); replace the
-  steering `PLACEHOLDER.bin` line with a real vector from `dir-steering/`.
+- `tests/parity_prompts.txt` present (copied by `new-child.sh`); replace its
+  absolute-path placeholders. Every child needs a real steering vector;
+  `sf-ds4flash` also needs the absolute path to
+  `DeepSeek-V4-Flash-DSpark-support-0731.gguf`.
 
 Commit: `simplify(download): one model, quantization as the only argument`,
 `simplify(docs): …`.
@@ -193,9 +220,9 @@ Commit: `simplify(download): one model, quantization as the only argument`,
 For each surviving `.md`: delete paragraphs about removed models, backends,
 binaries. Rewrite the README head with the attribution notice (SPEC §I),
 keep upstream's acknowledgements verbatim. Update `AGENT.md` Layout and Goals.
-`AGENTS.md` (template) is already there; fill any `Chida82`.
+`AGENTS.md` (template) is already there and points to the `Chida82` organization.
 
-**Check**: `grep -rliE 'cuda|rocm|spark|strix|ds4-agent|<other model names>' --include=*.md . ` returns
+**Check**: `grep -rliE 'cuda|rocm|strix|ds4-agent|<other model names>' --include=*.md . ` returns
 only `LICENSE`-adjacent or acknowledgement text you intentionally kept.
 
 ## 10. Model-backed verification
@@ -211,14 +238,15 @@ make test-metal-…                # every kept Metal/kernel test target (see ma
 cd ../.. && tools/parity-check.sh <child>
 ```
 
-**Check**: all green; parity OK with speed within ±2%; steering prompt and
-(where present) MTP prompt included in the parity run.
+**Check**: all green; parity OK with speed within ±2%; steering plus the
+child's speculative path are included: DSpark for `sf-ds4flash`, MTP for
+GLM/Qwen, none for V4.1.
 
 ## 11. Land
 
 PR(s) into `main`, merge, then `tools/sync-finish.sh <child>` (it will find
 `sync-<base>` already present and do nothing more), push `main` and tags.
-Fill the `Repo` column in AGENTS.md registry if it still says `Chida82`.
+Confirm that the child repo URL in the root AGENTS.md registry is reachable.
 
 **Check**: `tools/status.sh` shows the child with base = last sync tag,
 `BEHIND` = number of upstream commits since (likely > 0 by now → SYNC.md).

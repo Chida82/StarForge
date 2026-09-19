@@ -18,7 +18,7 @@ what this repo is and how to work in it. For code-quality rules read
 | Home dir | `~/.sf/ds4flash` (CLI history; suggested `--kv-disk-dir ~/.sf/ds4flash/kv`) |
 | Instance lock | `/tmp/sf-ds4flash.lock` (override: `DS4_LOCK_FILE`) |
 | Vision | no (DeepSeek V4 Flash Vision Experimental is not managed by any child) |
-| Speculative decoding | none (DSpark and legacy MTP removed) |
+| Speculative decoding | DSpark only, with `DeepSeek-V4-Flash-DSpark-support-0731.gguf`; legacy MTP removed |
 | Steering | yes (`--dir-steering-file`, `/steer`, `dir-steering/`) |
 | TP / RDMA / pipeline | yes |
 | Upstream base | `8db1d1d` at bootstrap; current: `git describe --tags --match 'sync-*' --abbrev=0` |
@@ -35,7 +35,8 @@ ports above are chosen so nothing collides with them or with upstream ds4.
   targets. Where a cut sits inside a live file there is a marker:
   `/* sf-ablate(<area>): ... */`. Where we were unsure and kept code:
   `/* sf-keep: ... */`.
-- Features the registry marks as absent for this model (see Identity).
+- Features the registry marks as absent for this model (see Identity), including
+  the legacy one-stage MTP path. DSpark and its shared speculative helpers stay.
 
 ## Rules that keep upstream merges alive
 
@@ -67,6 +68,14 @@ All in one block of the `Makefile`, each read at exactly one place:
 `DS4_*` environment variables are upstream's and are **not renamed**. Set them
 inline (`DS4_METAL_CB_TIMES=1 ./sf-ds4flash ...`), never `export`.
 
+## Speculative decoding contract
+
+Keep only DSpark: its separate 0731 support GGUF loader, `--dspark*`,
+`--mtp-model`, `--mtp-exact-sampling`, DSpark tests, and shared speculative
+helpers even when their names contain `mtp`. Remove `DS4_SUPPORT_MTP_LEGACY`,
+`--mtp`, `--mtp-draft`, `--mtp-margin`, `--mtp-timing`, `DS4_TEST_MTP`, and
+`mtp-verify-depth`. Do not infer the mechanism from an identifier's name.
+
 ## Build, test, verify
 
 ```sh
@@ -77,10 +86,10 @@ make help            # remaining targets (model-backed tests need a GGUF in gguf
 ```
 
 Model-backed checks before a PR: the kernel tests of this model, `ds4_test`,
-`./sf-ds4flash-eval`, and the **parity oracle** run from the StarForge
-orchestrator (`tools/parity-check.sh sf-ds4flash`): upstream at our merge-base vs
-this repo, same GGUF, same prompts (`tests/parity_prompts.txt`), greedy,
-token-identical output, speed within ±2%.
+`make dspark-acceptance`, `make dspark-verify-depth`, `./sf-ds4flash-eval`, and
+StarForge's **parity oracle** (`tools/parity-check.sh sf-ds4flash`): upstream at
+our merge-base vs this repo, same main and DSpark GGUFs, same prompts
+(`tests/parity_prompts.txt`), greedy, token-identical output, speed within ±2%.
 
 ## Removing code (ablation)
 
