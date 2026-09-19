@@ -3,9 +3,16 @@
 #   only-removed : every touched path is absent in the child → will fall out as modify/delete
 #   touches-live : touches ds4.c / ds4_metal.m / metal/ or other files the child keeps → read it
 #   docs-only    : only .md files
-# Usage: tools/sync-preview.sh <child>
+# Usage: tools/sync-preview.sh [child]   (no argument: every cloned child, in registry order)
 source "$(dirname "$0")/lib.sh"
-name="${1:?usage: sync-preview.sh <child>}"; require_child "$name"; dir="$(child_dir "$name")"
+if [ $# -eq 0 ]; then
+    for c in $(registry_names); do
+        [ -d "$(child_dir "$c")/.git" ] || continue
+        "$0" "$c"; echo
+    done
+    exit 0
+fi
+name="$1"; require_child "$name"; dir="$(child_dir "$name")"
 git -C "$dir" fetch -q upstream
 range="main..upstream/main"
 n="$(git -C "$dir" rev-list --count "$range")"

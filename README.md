@@ -38,7 +38,7 @@ tools/status.sh             # where each child stands vs upstream/main
 |---|---|---|
 | understand the rules | `AGENTS.md` (short), then `SPEC.md` (the law) | |
 | create a child | `BOOTSTRAP.md` | `tools/new-child.sh <child> <org>` then the checklist |
-| see what upstream changed for a child | `SYNC.md` §1 | `tools/sync-preview.sh <child>` |
+| see what upstream changed for a child | `SYNC.md` §1 | `tools/sync-preview.sh [child]` (no arg = all) |
 | pull upstream into a child | `SYNC.md` | `tools/sync-start.sh <child>` → resolve → `tools/parity-check.sh <child>` → PR → `tools/sync-finish.sh <child>` |
 | prove a child still matches upstream | `SPEC.md` §F.4 | `tools/parity-check.sh <child> [model.gguf]` |
 | work with a coding agent | open `children/<child>` (it has its own `AGENTS.md`) or this folder | |
@@ -52,7 +52,7 @@ All bash + git + coreutils, in `tools/`:
 | `clone-all.sh` | clone/fetch `upstream/ds4` and every child in the registry; sets `upstream` remote and rerere |
 | `status.sh` | per child: upstream merge-base, last `sync-*` tag, commits behind, dirty tree |
 | `new-child.sh <child> [org]` | fresh child clone from upstream with remotes, rerere, base tag, `AGENTS.md` from template. Step 1 of BOOTSTRAP only; no ablation |
-| `sync-preview.sh <child>` | classify pending upstream commits: only-removed / docs-only / touches-live / HOT |
+| `sync-preview.sh [child]` | classify pending upstream commits: only-removed / docs-only / touches-live / HOT. No argument: every cloned child |
 | `sync-start.sh <child>` | branch `sync/<sha7>`, merge `upstream/main`, list conflicts by type |
 | `rm-deleted-conflicts.sh <child>` | resolve modify/delete conflicts by keeping the child's deletions |
 | `parity-check.sh <child> [gguf]` | build upstream at the child's merge-base and the child; same prompts, greedy; token-identical + speed ±2% |

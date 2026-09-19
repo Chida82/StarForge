@@ -8,6 +8,20 @@ escalate if unsure.
 
 ## 0. Preconditions
 
+**One child at a time.** Every script below takes `<child>`; a sync creates a
+branch, resolves conflicts and runs the oracle in one repo. There is no
+"sync everything" command and there should not be one: children are
+independent and a conflict in one must not block the others.
+
+The two family-wide views:
+
+```sh
+tools/status.sh                       # all children: base, last tag, commits behind
+tools/sync-preview.sh                 # no argument: preview for every cloned child
+```
+
+Then pick one child and follow the rest of this file with its name.
+
 ```sh
 tools/status.sh                       # BEHIND > 0 for the child; DIRTY = no
 ```
@@ -17,7 +31,7 @@ tools/status.sh                       # BEHIND > 0 for the child; DIRTY = no
 ## 1. Preview
 
 ```sh
-tools/sync-preview.sh <child>
+tools/sync-preview.sh <child>         # or with no argument: every cloned child
 ```
 
 Read the classification:

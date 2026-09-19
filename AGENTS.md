@@ -73,8 +73,8 @@ currently stands relative to upstream is **not** recorded here: read its
 |---|---|---|
 | First time here / set up the folder | README.md | `tools/clone-all.sh` |
 | Create a child | BOOTSTRAP.md (and SPEC.md §B–§E) | `tools/new-child.sh` then the checklist |
-| See what upstream changed since a child last synced | SYNC.md step 1 | `tools/sync-preview.sh <child>` |
-| Bring upstream commits into a child | SYNC.md | `tools/sync-start.sh`, `tools/rm-deleted-conflicts.sh`, `tools/parity-check.sh`, `tools/sync-finish.sh` |
+| See what upstream changed since a child last synced | SYNC.md step 1 | `tools/sync-preview.sh [child]` (no arg = all children) |
+| Bring upstream commits into a child (**one child at a time**) | SYNC.md | `tools/sync-start.sh`, `tools/rm-deleted-conflicts.sh`, `tools/parity-check.sh`, `tools/sync-finish.sh` |
 | Decide whether some code can be removed | SPEC.md §F | `make test` in the child, then `tools/parity-check.sh` |
 | Where does each child stand | — | `tools/status.sh` |
 | Anything not covered above | SPEC.md, then ask | — |
