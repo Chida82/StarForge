@@ -25,7 +25,7 @@ git checkout -b bootstrap/$(git rev-parse --short=7 HEAD)
 
 **Check**: `git remote -v` shows `upstream` = antirez/ds4 and `origin` = your
 repo; `git config rerere.enabled` = `true`; `git tag` shows `sync-<sha7>`;
-`AGENTS.md` has no `<PLACEHOLDER>` left except `<ORG>` if you did not pass it.
+`AGENTS.md` has no `<PLACEHOLDER>` left except `Chida82` if you did not pass it.
 
 ## 2. Makefile: identity and Darwin only
 
@@ -193,7 +193,7 @@ Commit: `simplify(download): one model, quantization as the only argument`,
 For each surviving `.md`: delete paragraphs about removed models, backends,
 binaries. Rewrite the README head with the attribution notice (SPEC §I),
 keep upstream's acknowledgements verbatim. Update `AGENT.md` Layout and Goals.
-`AGENTS.md` (template) is already there; fill any `<ORG>`.
+`AGENTS.md` (template) is already there; fill any `Chida82`.
 
 **Check**: `grep -rliE 'cuda|rocm|spark|strix|ds4-agent|<other model names>' --include=*.md . ` returns
 only `LICENSE`-adjacent or acknowledgement text you intentionally kept.
@@ -218,7 +218,7 @@ cd ../.. && tools/parity-check.sh <child>
 
 PR(s) into `main`, merge, then `tools/sync-finish.sh <child>` (it will find
 `sync-<base>` already present and do nothing more), push `main` and tags.
-Fill the `Repo` column in AGENTS.md registry if it still says `<ORG>`.
+Fill the `Repo` column in AGENTS.md registry if it still says `Chida82`.
 
 **Check**: `tools/status.sh` shows the child with base = last sync tag,
 `BEHIND` = number of upstream commits since (likely > 0 by now → SYNC.md).

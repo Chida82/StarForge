@@ -6,12 +6,13 @@ UPSTREAM_DIR="$SF_ROOT/upstream/ds4"
 CHILDREN_DIR="$SF_ROOT/children"
 
 # Registry: name|shape|port|home|lock|vision|specdec|repo
-# Keep in sync with AGENTS.md "Children registry". <ORG> until repos exist.
+# Keep in sync with AGENTS.md "Children registry". Repos are created as children are bootstrapped;
+# clone-all.sh skips the ones that do not exist yet.
 REGISTRY='
-sf-ds4flash|DS4_SHAPE_FLASH|8001|~/.sf/ds4flash|/tmp/sf-ds4flash.lock|no|none|<ORG>/sf-ds4flash
-sf-ds4-1flash|DS4_SHAPE_FLASH41|8002|~/.sf/ds4-1flash|/tmp/sf-ds4-1flash.lock|yes|none|<ORG>/sf-ds4-1flash
-sf-glm5-3flash|DS4_SHAPE_GLM53|8003|~/.sf/glm5-3flash|/tmp/sf-glm5-3flash.lock|yes|mtp|<ORG>/sf-glm5-3flash
-sf-q3-8flash|DS4_SHAPE_QWEN4_EXP|8004|~/.sf/q3-8flash|/tmp/sf-q3-8flash.lock|yes|mtp|<ORG>/sf-q3-8flash
+sf-ds4flash|DS4_SHAPE_FLASH|8001|~/.sf/ds4flash|/tmp/sf-ds4flash.lock|no|none|Chida82/sf-ds4flash
+sf-ds4-1flash|DS4_SHAPE_FLASH41|8002|~/.sf/ds4-1flash|/tmp/sf-ds4-1flash.lock|yes|none|Chida82/sf-ds4-1flash
+sf-glm5-3flash|DS4_SHAPE_GLM53|8003|~/.sf/glm5-3flash|/tmp/sf-glm5-3flash.lock|yes|mtp|Chida82/sf-glm5-3flash
+sf-q3-8flash|DS4_SHAPE_QWEN4_EXP|8004|~/.sf/q3-8flash|/tmp/sf-q3-8flash.lock|yes|mtp|Chida82/sf-q3-8flash
 '
 
 die() { echo "error: $*" >&2; exit 1; }

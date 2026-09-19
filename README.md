@@ -29,7 +29,7 @@ Go to the child's repo. Its README tells you `make`, `./download.sh <quant>`,
 ## If you maintain the children
 
 ```sh
-git clone https://github.com/<ORG>/StarForge && cd StarForge
+git clone https://github.com/Chida82/StarForge && cd StarForge
 tools/clone-all.sh          # upstream/ds4 (full) + children/* (those that exist on GitHub)
 tools/status.sh             # where each child stands vs upstream/main
 ```

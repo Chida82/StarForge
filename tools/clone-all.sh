@@ -16,8 +16,8 @@ for name in $(registry_names); do
     if [ -d "$dir/.git" ]; then
         log "$name: fetch origin + upstream"
         git -C "$dir" fetch -q origin; git -C "$dir" fetch -q upstream
-    elif [[ "$repo" == *"<ORG>"* ]]; then
-        log "$name: skipped (repo not created yet, registry has <ORG>)"
+    elif ! git ls-remote -q --exit-code "https://github.com/$repo.git" HEAD >/dev/null 2>&1; then
+        log "$name: skipped (https://github.com/$repo not reachable: not created yet, or private and unauthenticated)"
     else
         log "$name: clone https://github.com/$repo.git"
         git clone -q "https://github.com/$repo.git" "$dir"

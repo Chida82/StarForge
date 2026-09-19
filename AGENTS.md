@@ -31,10 +31,10 @@ upstream/ds4/    plain full clone of upstream (gitignored). Read-only.
 
 | Child | Model | Shape (`ds4.c`) | Port | Home | Lock | Vision | Spec-dec | Repo |
 |---|---|---|---|---|---|---|---|---|
-| `sf-ds4flash`   | DeepSeek V4 Flash     | `DS4_SHAPE_FLASH`   | 8001 | `~/.sf/ds4flash`   | `/tmp/sf-ds4flash.lock`   | no  | none | `<ORG>/sf-ds4flash` |
-| `sf-ds4-1flash` | DeepSeek V4.1 Flash   | `DS4_SHAPE_FLASH41` | 8002 | `~/.sf/ds4-1flash` | `/tmp/sf-ds4-1flash.lock` | yes | none | `<ORG>/sf-ds4-1flash` |
-| `sf-glm5-3flash`| GLM 5.3 Flash         | `DS4_SHAPE_GLM53`   | 8003 | `~/.sf/glm5-3flash`| `/tmp/sf-glm5-3flash.lock`| yes | MTP  | `<ORG>/sf-glm5-3flash` |
-| `sf-q3-8flash`  | Qwen3.8 Flash Next    | `DS4_SHAPE_QWEN4_EXP` (+`QWEN4_MINI` for tests) | 8004 | `~/.sf/q3-8flash` | `/tmp/sf-q3-8flash.lock` | yes | MTP | `<ORG>/sf-q3-8flash` |
+| `sf-ds4flash`   | DeepSeek V4 Flash     | `DS4_SHAPE_FLASH`   | 8001 | `~/.sf/ds4flash`   | `/tmp/sf-ds4flash.lock`   | no  | none | `Chida82/sf-ds4flash` |
+| `sf-ds4-1flash` | DeepSeek V4.1 Flash   | `DS4_SHAPE_FLASH41` | 8002 | `~/.sf/ds4-1flash` | `/tmp/sf-ds4-1flash.lock` | yes | none | `Chida82/sf-ds4-1flash` |
+| `sf-glm5-3flash`| GLM 5.3 Flash         | `DS4_SHAPE_GLM53`   | 8003 | `~/.sf/glm5-3flash`| `/tmp/sf-glm5-3flash.lock`| yes | MTP  | `Chida82/sf-glm5-3flash` |
+| `sf-q3-8flash`  | Qwen3.8 Flash Next    | `DS4_SHAPE_QWEN4_EXP` (+`QWEN4_MINI` for tests) | 8004 | `~/.sf/q3-8flash` | `/tmp/sf-q3-8flash.lock` | yes | MTP | `Chida82/sf-q3-8flash` |
 
 Not managed (no child, code removed from every child): DeepSeek V4 Flash Vision
 Experimental, DeepSeek V4 PRO, GLM 5.2, GLM 5.3 (non-Flash).

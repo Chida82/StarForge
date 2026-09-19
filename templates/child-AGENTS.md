@@ -2,7 +2,7 @@
 
 `<CHILD>` is a specialized fork of [ds4 / DwarfStar](https://github.com/antirez/ds4)
 reduced to **one model on Apple Metal**. It is one *child* of the
-[StarForge](https://github.com/<ORG>/StarForge) family. This file explains
+[StarForge](https://github.com/Chida82/StarForge) family. This file explains
 what this repo is and how to work in it. For code-quality rules read
 `AGENT.md` (upstream's notes, trimmed): they apply unchanged.
 
