@@ -8,9 +8,10 @@ the reasons.
 Inputs: `<child>` from the registry (AGENTS.md), the GitHub org, a Mac with
 enough RAM and the model's GGUF (needed from step 7 on).
 
-Work in small commits with the SPEC §E subjects. Push to a branch
+Work in small reviewable batches with the SPEC §E subjects. **Do not commit or
+push unless the user explicitly requests it.** When requested, push a branch
 `bootstrap/<sha7>` and land with one PR at the end, or land each step as its
-own PR: both are fine. Never work on `main` directly after step 1.
+own PR. Never work on `main` directly after step 1.
 
 ---
 
@@ -18,14 +19,15 @@ own PR: both are fine. Never work on `main` directly after step 1.
 
 ```sh
 tools/clone-all.sh                       # upstream/ds4 must exist
-tools/new-child.sh <child> <org>         # clone, remotes, rerere, tag sync-<base>, AGENTS.md from template
+tools/new-child.sh <child> <org>         # clone, remotes, rerere, render AGENTS.md; no commit/tag/push
 cd children/<child>
 git checkout -b bootstrap/$(git rev-parse --short=7 HEAD)
 ```
 
 **Check**: `git remote -v` shows `upstream` = antirez/ds4 and `origin` = your
-repo; `git config rerere.enabled` = `true`; `git tag` shows `sync-<sha7>`;
-`AGENTS.md` has no `<PLACEHOLDER>` left except `Chida82` if you did not pass it.
+repo; `git config rerere.enabled` = `true`; `AGENTS.md` has no unresolved
+identity placeholder; `git log -1` is still the untouched upstream commit (the
+script created no commit or tag).
 
 ## 2. Makefile: identity and Darwin only
 
@@ -201,8 +203,20 @@ green; binary size dropped; `wc -l ds4.c ds4_metal.m` dropped substantially.
 ## 8. Single-model simplifications
 
 - `download_model.sh` → `download.sh`: only this model's targets, first
-  positional = quantization/component, model name hardcoded, keep resume /
-  checksum / symlink update. `git mv` then edit (keeps history).
+  positional = quantization/component, model name and exact Hugging Face repo
+  ID/filename hardcoded. Use the **Hugging Face CLI only**:
+  ```sh
+  path="$(hf download -q <repo-id> <exact-filename>)"
+  mkdir -p gguf
+  ln -sfn "$path" "gguf/<component>.gguf"
+  ln -sfn "gguf/<component>.gguf" "<default>.gguf"  # main model only
+  ```
+  Fail clearly if `hf` is absent. The CLI owns the shared cache
+  (`$HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, default
+  `~/.cache/huggingface/hub`), deduplication, resume and verification.
+  `gguf/` and the root default-model link contain symlinks only: never
+  copy/move the GGUF from cache into a child. `git mv` then edit (keeps script
+  history).
 - Help texts and README commands use `<child>` names.
 - `tests/parity_prompts.txt` present (copied by `new-child.sh`); replace its
   absolute-path placeholders. Every child needs a real steering vector;
@@ -213,7 +227,9 @@ Commit: `simplify(download): one model, quantization as the only argument`,
 `simplify(docs): …`.
 
 **Check**: `./download.sh` with no args lists the offered quantizations;
-`./download.sh <q>` resumes an interrupted download.
+`./download.sh <q>` runs `hf download`, resumes an interrupted download, and
+`test -L gguf/<component>.gguf && test -L <default>.gguf` confirms the repo
+contains symlinks, not a second model copy.
 
 ## 9. Docs pass (SPEC §E "Docs")
 
@@ -227,7 +243,7 @@ only `LICENSE`-adjacent or acknowledgement text you intentionally kept.
 
 ## 10. Model-backed verification
 
-With the GGUF in place (`./download.sh <q>`):
+With the GGUF symlinked from the Hugging Face cache (`./download.sh <q>`):
 
 ```sh
 make test                        # model-less
@@ -244,9 +260,10 @@ GLM/Qwen, none for V4.1.
 
 ## 11. Land
 
-PR(s) into `main`, merge, then `tools/sync-finish.sh <child>` (it will find
-`sync-<base>` already present and do nothing more), push `main` and tags.
-Confirm that the child repo URL in the root AGENTS.md registry is reachable.
+Only after an explicit user request: commit the prepared batches, push the
+bootstrap branch, land its PR into `main`, create `sync-<base>` on that landed
+commit, and push the tag. Confirm that the child repo URL in the root AGENTS.md
+registry is reachable.
 
 **Check**: `tools/status.sh` shows the child with base = last sync tag,
 `BEHIND` = number of upstream commits since (likely > 0 by now → SYNC.md).

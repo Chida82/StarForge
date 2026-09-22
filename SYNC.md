@@ -20,7 +20,9 @@ tools/status.sh                       # all children: base, last tag, commits be
 tools/sync-preview.sh                 # no argument: preview for every cloned child
 ```
 
-Then pick one child and follow the rest of this file with its name.
+Then pick one child and follow the rest of this file with its name. The tools
+prepare changes but do not commit. **Commit and push only after the user
+explicitly requests each action.**
 
 ```sh
 tools/status.sh                       # BEHIND > 0 for the child; DIRTY = no
@@ -49,7 +51,7 @@ concerns this child.
 ## 2. Start the merge
 
 ```sh
-tools/sync-start.sh <child>           # branch sync/<sha7>, merge upstream/main, list conflicts
+tools/sync-start.sh <child>           # branch + merge in progress; never commits
 ```
 
 Clean merge → skip to step 5.
@@ -79,8 +81,10 @@ For each remaining file:
   the upstream side is about a removed model/backend/agent): keep our side,
   drop theirs. If upstream's hunk contains a fix to code that *also* exists in
   the child (shared helper touched together with removed code): take the fix,
-  drop the rest, extend the `sf-ablate` marker with one line saying what was
-  dropped at sync `<sha7>`.
+  drop the rest. In every file that remains, place or update a one-line marker
+  at the exact cut: `/* sf-ablate(<area>): <what was dropped; child invariant
+  that makes it unnecessary> */`. This gives the next agent local context.
+  Whole-file deletions get no marker-only replacement file.
 - Conflict in **shared/live code** with no marker: this is real. Take
   upstream's change unless it re-introduces something the child removed (then
   it is the case above). If you cannot tell → **stop, ask**.
@@ -89,14 +93,11 @@ For each remaining file:
   otherwise.
 - Conflict in **`.md`**: apply the docs rule (SPEC §E): delete, don't adapt.
 
-Then `git add <file>` and, when none is left:
+Then `git add <file>`. Do **not** commit yet: cleanup, tests and parity belong
+to the reviewable sync result.
 
-```sh
-git commit --no-edit                  # keeps "sync: upstream <sha7>"
-```
-
-**Check**: `git status` clean; `git log -1 --format=%s` = `sync: upstream <sha7>`;
-`git rerere gc` not needed; every dropped upstream hunk in a live file has a marker.
+**Check**: `git diff --name-only --diff-filter=U` is empty; `MERGE_HEAD` exists;
+every dropped upstream hunk in a live file has a marker.
 
 ## 5. Post-merge cleanup
 
@@ -109,7 +110,8 @@ git diff --stat main..HEAD | grep -Ei 'cuda|rocm|agent|<other model tags>'   # n
 make 2>&1 | grep -c unused-function                                            # new dead code
 ```
 
-Remove with `ablate(<area>): post-sync <sha7> …` commits on the same branch.
+Remove and stage those additions as part of this sync resolution. Do not
+commit yet.
 
 **Check**: the grep above is empty; `make` has no `unused-function` warnings.
 
@@ -128,13 +130,23 @@ child's ablation interacts with it: HOT → ask.
 
 **Check**: `PARITY OK`.
 
-## 7. Land and tag
+## 7. Commit, land and tag
 
-Push the branch, open the PR (`sync: upstream <sha7>`, body = the preview
-output + notes on hand-resolved conflicts), merge on GitHub, then:
+If the user now explicitly asks for the commit:
 
 ```sh
-tools/sync-finish.sh <child>          # tag main sync-<sha7>, push tag, delete local branch
+git add -A
+git commit -m "sync: upstream <sha7>"
+```
+
+Without that explicit request, stop with the tested changes prepared.
+
+Only after explicit requests: push the branch, open the PR (`sync: upstream
+<sha7>`, body = the preview output plus any necessary conflict notes), merge
+on GitHub, then explicitly authorize the tag push:
+
+```sh
+tools/sync-finish.sh <child> --push   # --push is mandatory
 tools/status.sh                       # BEHIND = 0
 ```
 
@@ -161,4 +173,4 @@ distance.
 | Merge clean, `make` fails | upstream added a call into removed code | find the caller, remove the call or the whole new path, `ablate(<area>): post-sync` |
 | `make test` green, parity DIFF | ablation touched shared numerics, or upstream changed sampling | compare with `git bisect` between merge-base and HEAD on the child; ask if not obvious |
 | Upstream renamed a `ds4_*` file | scheme at risk | **stop, ask**: follow rename in child vs freeze child at previous SHA |
-| `sync-start.sh` refuses: dirty tree | local edits | commit or `git stash` first |
+| `sync-start.sh` refuses: dirty tree | local edits | `git stash` first, or ask the user to authorize a commit |

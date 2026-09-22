@@ -37,11 +37,24 @@ fail=0; i=0
 while IFS=$'\t' read -r prompt extra; do
     [ -z "$prompt" ] && continue; [[ "$prompt" == \#* ]] && continue
     i=$((i+1))
+    # Both binaries load their .metal sources relative to the working directory,
+    # so each one runs from its own tree. Any relative path in the extra flags
+    # (a steering vector, say) belongs to the child and is made absolute first,
+    # because the upstream tree does not carry the child's files.
+    extra_abs=""
+    for tok in $extra; do
+        case "$tok" in
+            /*|-*) extra_abs="$extra_abs $tok" ;;
+            *) [ -e "$dir/$tok" ] && extra_abs="$extra_abs $dir/$tok" || extra_abs="$extra_abs $tok" ;;
+        esac
+    done
     # shellcheck disable=SC2086
-    "$up_bin"    -m "$model" --temp 0 --nothink -n 128 $extra -p "$prompt" > "$out/$i.up.txt"    2> "$out/$i.up.err"
+    ( cd "$wt"  && "$up_bin"    -m "$model" --temp 0 --nothink -n 128 $extra_abs -p "$prompt" ) > "$out/$i.up.txt"    2> "$out/$i.up.err" || true
     # shellcheck disable=SC2086
-    "$child_bin" -m "$model" --temp 0 --nothink -n 128 $extra -p "$prompt" > "$out/$i.child.txt" 2> "$out/$i.child.err"
-    if cmp -s "$out/$i.up.txt" "$out/$i.child.txt"; then
+    ( cd "$dir" && "$child_bin" -m "$model" --temp 0 --nothink -n 128 $extra_abs -p "$prompt" ) > "$out/$i.child.txt" 2> "$out/$i.child.err" || true
+    if [ ! -s "$out/$i.up.txt" ] || [ ! -s "$out/$i.child.txt" ]; then
+        echo "  [FAIL] $i: $prompt  → a binary produced no output, see $out/$i.*.err"; fail=1
+    elif cmp -s "$out/$i.up.txt" "$out/$i.child.txt"; then
         echo "  [ok ] $i: $prompt"
     else
         echo "  [DIFF] $i: $prompt  → diff $out/$i.up.txt $out/$i.child.txt"; fail=1

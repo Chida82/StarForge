@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 1 of BOOTSTRAP.md: create the child clone with remotes and rerere. Does NOT ablate.
+# Step 1 of BOOTSTRAP.md: clone and render child files. Does not commit, tag, push, or ablate.
 # Usage: tools/new-child.sh <child> [github-org]
 source "$(dirname "$0")/lib.sh"
 name="${1:?usage: new-child.sh <child> [github-org]}"; require_upstream
@@ -18,7 +18,6 @@ git checkout -q -B main upstream/main
 git config rerere.enabled true
 git config rerere.autoupdate true
 base="$(git rev-parse --short=7 HEAD)"
-git tag -a "sync-$base" -m "bootstrap base: upstream $base"
 cp "$SF_ROOT/templates/child-AGENTS.md" AGENTS.md
 sed -i '' -e "s/<CHILD>/$name/g" \
           -e "s/<SHAPE>/$(registry_field "$name" 2)/g" \
@@ -29,7 +28,7 @@ sed -i '' -e "s/<CHILD>/$name/g" \
           -e "s/<SPECDEC>/$(registry_field "$name" 7)/g" \
           -e "s/<BASE_SHA>/$base/g" AGENTS.md
 cp "$SF_ROOT/tools/parity/$name.txt" tests/parity_prompts.txt 2>/dev/null || true
-git add AGENTS.md tests/parity_prompts.txt 2>/dev/null || git add AGENTS.md
-git commit -q -m "sf: bootstrap $name from upstream $base (AGENTS.md, rerere, tags)"
-log "done. Base upstream $base. Continue with BOOTSTRAP.md step 2 in $dir"
+[ "$name" = "sf-ds4flash" ] && cp "$SF_ROOT/templates/sf-ds4flash-NEXT.md" NEXT.md
+log "prepared $name at upstream $base (no commit, tag, or push created)"
+echo "Continue with BOOTSTRAP.md step 2. Commit, tag, and push only when explicitly requested."
 [ -z "$org" ] && echo "note: no origin set. Create github.com/<org>/$name and: git remote add origin git@github.com:<org>/$name.git"

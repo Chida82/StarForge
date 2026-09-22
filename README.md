@@ -24,7 +24,9 @@ code lives here.
 ## If you just want to run a model
 
 Go to the child's repo. Its README tells you `make`, `./download.sh <quant>`,
-`./sf-<model>`. You do not need this repo.
+`./sf-<model>`. `download.sh` uses the Hugging Face CLI and creates a `gguf/`
+symlink to the shared Hugging Face cache; it does not duplicate the model in
+the repo. You do not need this repo.
 
 ## If you maintain the children
 
@@ -39,7 +41,7 @@ tools/status.sh             # where each child stands vs upstream/main
 | understand the rules | `AGENTS.md` (short), then `SPEC.md` (the law) | |
 | create a child | `BOOTSTRAP.md` | `tools/new-child.sh <child> <org>` then the checklist |
 | see what upstream changed for a child | `SYNC.md` §1 | `tools/sync-preview.sh [child]` (no arg = all) |
-| pull upstream into a child | `SYNC.md` | `tools/sync-start.sh <child>` → resolve → `tools/parity-check.sh <child>` → PR → `tools/sync-finish.sh <child>` |
+| pull upstream into a child | `SYNC.md` | `tools/sync-start.sh <child>` → resolve → trace → parity → explicit commit/push request → PR → `tools/sync-finish.sh <child> --push` |
 | prove a child still matches upstream | `SPEC.md` §F.4 | `tools/parity-check.sh <child> [model.gguf]` |
 | work with a coding agent | open `children/<child>` (it has its own `AGENTS.md`) or this folder | |
 
@@ -51,12 +53,12 @@ All bash + git + coreutils, in `tools/`:
 |---|---|
 | `clone-all.sh` | clone/fetch `upstream/ds4` and every child in the registry; sets `upstream` remote and rerere |
 | `status.sh` | per child: upstream merge-base, last `sync-*` tag, commits behind, dirty tree |
-| `new-child.sh <child> [org]` | fresh child clone from upstream with remotes, rerere, base tag, `AGENTS.md` from template. Step 1 of BOOTSTRAP only; no ablation |
+| `new-child.sh <child> [org]` | fresh child clone with remotes, rerere, rendered `AGENTS.md`, parity prompts. No commit/tag/push |
 | `sync-preview.sh [child]` | classify pending upstream commits: only-removed / docs-only / touches-live / HOT. No argument: every cloned child |
-| `sync-start.sh <child>` | branch `sync/<sha7>`, merge `upstream/main`, list conflicts by type |
+| `sync-start.sh <child>` | branch `sync/<sha7>`, apply `upstream/main` as an uncommitted merge, list conflicts |
 | `rm-deleted-conflicts.sh <child>` | resolve modify/delete conflicts by keeping the child's deletions |
-| `parity-check.sh <child> [gguf]` | build upstream at the child's merge-base and the child; same prompts, greedy; token-identical + speed ±2% |
-| `sync-finish.sh <child>` | after the PR is merged: tag `main` as `sync-<sha7>`, push |
+| `parity-check.sh <child> [gguf]` | build upstream at the child's merge-base and the child; same cache-backed GGUF/symlink, same prompts, greedy; token-identical + speed ±2% |
+| `sync-finish.sh <child> --push` | after the PR is merged and push explicitly authorized: tag `main` as `sync-<sha7>`, push |
 | `parity/<child>.txt` | prompt sets for the oracle (TAB → extra flags: steering plus DSpark or MTP per child) |
 | `lib.sh` | shared helpers and the **registry** (keep in sync with `AGENTS.md`) |
 
@@ -71,7 +73,9 @@ upstream/ds4/                    plain full clone of ds4 (gitignored, read-only)
 ```
 
 Children and upstream are **plain clones, not submodules**: each child already
-records its own upstream position (tags, merge-base). See `SPEC.md` §H.
+records its own upstream position (tags, merge-base). There is deliberately no
+central SHA/status file; `tools/status.sh` derives live state from Git. See
+`SPEC.md` §H.
 
 ## Design in five lines
 
@@ -85,6 +89,9 @@ Always kept in every child: steering, TP/RDMA, CPU reference path, server,
 CLI, bench, eval. Speculative decoding follows the table: notably,
 `sf-ds4flash` keeps DSpark but deletes legacy MTP. Never in a child:
 `ds4-agent`, CUDA, ROCm, other models.
+
+Agents may prepare and test changes, but **commit and push only after an
+explicit user request**.
 
 ## Status
 

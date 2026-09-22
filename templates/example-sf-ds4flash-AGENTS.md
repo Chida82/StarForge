@@ -32,9 +32,11 @@ ports above are chosen so nothing collides with them or with upstream ds4.
   Use `sf-ds4flash-server` with an external agent (see `docs/CLIENTS.md`).
 - CUDA / ROCm / multi-GPU placement, Linux memory helpers, DGX/Strix docs.
 - Every other model: shapes, kernels, tokenizer tables, tests, docs, download
-  targets. Where a cut sits inside a live file there is a marker:
-  `/* sf-ablate(<area>): ... */`. Where we were unsure and kept code:
-  `/* sf-keep: ... */`.
+  targets. In files that remain, every non-obvious cut or conflict resolution
+  that discards upstream code has a marker at the exact site:
+  `/* sf-ablate(<area>): <what was removed; why this child does not need it> */`.
+  Whole-file deletions have no marker-only replacement file. Where we were
+  unsure and kept code: `/* sf-keep: ... */`.
 - Features the registry marks as absent for this model (see Identity), including
   the legacy one-stage MTP path. DSpark and its shared speculative helpers stay.
 
@@ -50,7 +52,9 @@ ports above are chosen so nothing collides with them or with upstream ds4.
 4. **Docs follow code**: a paragraph about something not in this repo is
    deleted, not adapted. Docs are in English.
 5. **Never `git merge -X ours/theirs`.**
-6. Commit subjects: `ablate(<area>):`, `simplify(<area>):`, `sync: upstream <sha7>`,
+6. **Never commit or push without an explicit user request.** Editing, testing,
+   staging, or reading a checklist is not permission.
+7. Commit subjects: `ablate(<area>):`, `simplify(<area>):`, `sync: upstream <sha7>`,
    `fix(<area>):`, `perf(<area>):`, `sf:`. Tags `sync-<sha7>` on `main` after
    every landed sync.
 
@@ -76,13 +80,21 @@ helpers even when their names contain `mtp`. Remove `DS4_SUPPORT_MTP_LEGACY`,
 `--mtp`, `--mtp-draft`, `--mtp-margin`, `--mtp-timing`, `DS4_TEST_MTP`, and
 `mtp-verify-depth`. Do not infer the mechanism from an identifier's name.
 
-## Build, test, verify
+## Models, build, test, verify
+
+Models live once in the shared Hugging Face cache, not in this repo.
+`download.sh <component>` calls `hf download` for this child's fixed Hub repo
+and filename, then creates/updates a component symlink in `gguf/`. For the
+main model it also updates the root default-model symlink to that component.
+The cache location is `$HUGGINGFACE_HUB_CACHE`, else `$HF_HOME/hub`, else
+`~/.cache/huggingface/hub`. Never use `curl`/`wget` or copy a GGUF into this
+repo. `hf download` handles cache reuse, resume and verification.
 
 ```sh
 make                 # the four binaries
 make test            # model-less tests: seconds, run after every change
-make help            # remaining targets (model-backed tests need a GGUF in gguf/)
-./download.sh        # lists the quantizations this child offers
+make help            # remaining targets (model-backed tests follow gguf/ symlinks)
+./download.sh        # lists components; ./download.sh <component> fetches/symlinks one
 ```
 
 Model-backed checks before a PR: the kernel tests of this model, `ds4_test`,
@@ -110,8 +122,9 @@ Done from the orchestrator (`SYNC.md` there), summarized:
 git fetch upstream
 git checkout -b sync/<sha7> main && git merge upstream/main
 # modify/delete where we deleted → keep deleted (git rm)
-# content conflicts → rerere first, then by hand; dropping upstream code inside a live file → sf-ablate marker
-make test  →  model-backed tests  →  parity oracle  →  PR  →  main  →  tag sync-<sha7>
+# content conflicts → rerere first, then by hand; dropped code in a live file → sf-ablate marker
+make test  →  model-backed tests  →  parity oracle
+# commit/push/PR/main/tag only after the user explicitly asks
 ```
 
 If upstream renamed or split a `ds4_*` file: stop and ask a human.

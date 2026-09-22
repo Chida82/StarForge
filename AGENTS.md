@@ -20,7 +20,7 @@ SPEC.md          the law. Model-agnostic specification: what a child is, what it
 BOOTSTRAP.md     executable checklist: create a new child from upstream.
 SYNC.md          executable checklist: bring new upstream commits into a child.
 README.md        human entry point: how to call things.
-templates/       files copied into a child at bootstrap (child AGENTS.md, ...).
+templates/       files copied into a child at bootstrap (AGENTS.md, ...).
 tools/           scripts. Every procedure step that can be a script is one.
 tools/parity/    prompt sets for the parity oracle, one file per child.
 children/        plain git clones of the children (gitignored). Not submodules.
@@ -40,8 +40,9 @@ Not managed (no child, code removed from every child): DeepSeek V4 Flash Vision
 Experimental, DeepSeek V4 PRO, GLM 5.2, GLM 5.3 (non-Flash).
 
 Bootstrap order: `sf-ds4flash` first (pilot), then the others. Where a child
-currently stands relative to upstream is **not** recorded here: read its
-`sync-<sha7>` tags (`tools/status.sh`).
+currently stands relative to upstream is **not** recorded in a StarForge file:
+a duplicated status ledger would go stale. Git is the source of truth; read
+merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
 
 ## Non-negotiable rules
 
@@ -62,13 +63,37 @@ currently stands relative to upstream is **not** recorded here: read its
 7. **Every child has no `ds4-agent`.** Four binaries: CLI, server, bench, eval.
 8. **No on-disk path may collide with upstream ds4 or with another child.**
    Home, lock, history, default port are per child (see registry).
-9. **Delete, don't `#ifdef`.** A child is smaller code, not the same code
-   behind flags. Mark in-file cuts with `/* sf-ablate(<area>): ... */`.
-10. **Docs follow code.** A paragraph about a model, backend or binary that is
+9. **Models come from the shared Hugging Face cache.** A child's `download.sh`
+   uses `hf download`, makes component symlinks in `gguf/`, and a root default
+   symlink for the main model; it never copies a GGUF into the repository. See
+   SPEC.md §C.
+10. **Delete, don't `#ifdef`.** A child is smaller code, not the same code
+   behind flags. In files that remain, mark every non-obvious cut or sync
+   resolution at the exact site. Format: `/* sf-ablate(<area>): <what was
+   removed; why this child does not need it> */` (one source line). Never add
+   marker-only replacement files for whole-file deletions: Git carries that
+   history.
+11. **Docs follow code.** A paragraph about a model, backend or binary that is
    not in the child is deleted, not adapted. All `.md` files are in English.
-11. **Never `git merge -X ours`.** It silently drops upstream fixes.
-12. **Attribution stays.** `LICENSE` untouched (includes the GGML notice);
+12. **Never `git merge -X ours`.** It silently drops upstream fixes.
+13. **Attribution stays.** `LICENSE` untouched (includes the GGML notice);
     child README opens with the fork notice (SPEC.md §I).
+14. **Never commit or push without an explicit user request.** Preparing or
+    staging changes is allowed; a checklist saying "commit" is not permission.
+15. **Names do not decide ownership; reachability does.** Upstream identifiers
+    often carry the name of the model they were first written for (`glm_graph_*`
+    is the shared Metal graph host, `glm_mtp` is the built-in MTP switch every
+    MTP child uses). Before removing code because its name says "another
+    model", prove it unreachable: constant-false predicate, `nm` showing no
+    referrer, or a runtime probe. Each child records what it has established
+    in its own `AGENTS.md` under "Names that lie"; at a sync, take upstream
+    fixes to those families even when the name looks foreign.
+16. **The child exists to be cheap to read.** The goal is a tree an agent can
+    load and reason about with the fewest tokens, so model-specific
+    optimisation is fast and safe. Weigh that against sync cost: whole dead
+    functions are worth a permanent conflict site, scattered dead conditionals
+    usually are not. There is no sync ledger file: the `sf-ablate`/`sf-keep`
+    marker at the cut and the commit message are the record.
 
 ## Which file for which task
 
@@ -77,9 +102,9 @@ currently stands relative to upstream is **not** recorded here: read its
 | First time here / set up the folder | README.md | `tools/clone-all.sh` |
 | Create a child | BOOTSTRAP.md (and SPEC.md §B–§E) | `tools/new-child.sh` then the checklist |
 | See what upstream changed since a child last synced | SYNC.md step 1 | `tools/sync-preview.sh [child]` (no arg = all children) |
-| Bring upstream commits into a child (**one child at a time**) | SYNC.md | `tools/sync-start.sh`, `tools/rm-deleted-conflicts.sh`, `tools/parity-check.sh`, `tools/sync-finish.sh` |
+| Bring upstream commits into a child (**one child at a time**) | SYNC.md | `tools/sync-start.sh`, `tools/rm-deleted-conflicts.sh`, `tools/parity-check.sh`; only when explicitly requested: `tools/sync-finish.sh <child> --push` |
 | Decide whether some code can be removed | SPEC.md §F | `make test` in the child, then `tools/parity-check.sh` |
-| Where does each child stand | — | `tools/status.sh` |
+| Where does each child stand | — (no status file by design) | `tools/status.sh` |
 | Anything not covered above | SPEC.md, then ask | — |
 
 ## When to stop and ask a human

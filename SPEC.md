@@ -131,9 +131,18 @@ Design decisions that follow from this:
 
 - `download_model.sh` (715 lines, ~30 targets) → `download.sh` taking only a
   quantization / component name (`q2`, `q4k`, `vision`, `dspark`, ...). Model
-  hardcoded. For `sf-ds4flash`, `dspark` downloads only the matching 0731
-  support GGUF; there is no legacy-MTP target. Keep resume, checksum and the
-  `<default>.gguf` symlink update.
+  and Hugging Face repository are hardcoded. **All model downloads use the
+  Hugging Face CLI** (`hf download <repo> <file>`), never `curl`, `wget`, or a
+  custom downloader. It reuses the shared Hub cache
+  (`$HUGGINGFACE_HUB_CACHE`, else `$HF_HOME/hub`, else
+  `~/.cache/huggingface/hub`), resumes safely, and verifies Hub content.
+  `download.sh` must create/update stable component symlinks in the child's
+  local `gguf/` directory to the absolute cache paths printed by `hf download`.
+  For the main model it also updates the root `<default>.gguf` symlink to that
+  `gguf/` link, preserving upstream's default-model convention. Every file it
+  creates is a symlink; it must not copy or move multi-GB GGUFs into the repo.
+  For `sf-ds4flash`, `dspark` downloads only the matching 0731 support GGUF;
+  there is no legacy-MTP target.
 - Default `-m` hardcoded to the child's model file (`SF_DEFAULT_MODEL`); `-m`
   stays for override.
 - `--help` texts, `Makefile help`, README: only what exists.
@@ -142,7 +151,8 @@ Design decisions that follow from this:
 
 ## §D Decided per child (recorded in the child's AGENTS.md)
 
-- Which quantizations `download.sh` offers.
+- Which quantizations/components `download.sh` offers and their exact
+  Hugging Face repo IDs and filenames.
 - Vision and speculative decoding per the registry.
 - Default port, home dir, lock path per the registry.
 - Which `speed-bench/*.csv|svg` baselines to keep (only the child's model on
@@ -167,15 +177,25 @@ Design decisions that follow from this:
   upstream commit merged. `tools/status.sh` reads these.
 - Branch names: `sync/<sha7>` for syncs, `ablate/<area>` for ablation work,
   anything for the rest. Land through PRs on GitHub.
+- **Agents never create a commit or push anything without an explicit user
+  request for that commit or push.** Preparing, editing, testing, and staging
+  are not permission. A procedure that lists a later commit/push is not
+  permission either. Scripts must not hide an automatic commit or push behind
+  a setup/sync command; an explicit `--commit`/`--push` action would count.
 
 **Source**
 
 - **File names `ds4_*` never change.** Internal identifiers (`ds4_engine`,
   `DS4_*` macros, `DS4_*` env vars) never change either. Only the outside
   changes: binary names, default paths, help text.
-- In-file cuts get a one-line marker at the exact spot:
-  `/* sf-ablate(<area>): <what was here and why this child does not need it> */`
-  Whole-file deletions get no marker (`git log` says it).
+- In files that remain, every non-obvious cut or conflict resolution that
+  discards upstream code gets a one-line marker at the exact spot:
+  `/* sf-ablate(<area>): <what was here; why this child does not need it> */`.
+  The reason must identify the child invariant (model, Metal-only backend,
+  removed binary/feature), not merely say "unused". This local context is for
+  the next agent resolving a nearby upstream conflict.
+- Whole-file deletions get **no marker and no marker-only replacement file**:
+  Git records the deletion.
 - Child-specific values are compile-time defines, all set in one commented
   block of the Makefile and read at exactly one place each in the source:
 
@@ -202,7 +222,8 @@ Design decisions that follow from this:
   or binary not present in the child is **deleted**, not adapted. Adapting
   creates text upstream never wrote and conflicts forever.
 - Docs that survive in every child: `README.md` (rewritten head, trimmed body),
-  `docs/METAL.md`, `docs/MODELS.md` (child's model only), `docs/SERVER.md`,
+  child-owned `AGENTS.md`, `docs/METAL.md`, `docs/MODELS.md` (child's model only),
+  `docs/SERVER.md`,
   `docs/CLIENTS.md`, `docs/SSD_STREAMING.md`, `docs/DISTRIBUTED.md`,
   `docs/PERFORMANCE.md` (Metal numbers only), `docs/TESTING.md`,
   `dir-steering/README.md`, `EVAL_DATA.md`, `CONTRIBUTING.md`, `AGENT.md`,
@@ -256,8 +277,9 @@ attention/MoE/norm kernels stay, only clearly-tagged kernels go).
 3. Modify/delete conflicts → `git rm` (scripted). Hunk conflicts → rerere
    first, then by hand. Every resolution that drops upstream code inside a live
    file gets an `sf-ablate` marker.
-4. `make test` → model-backed tests → parity oracle → PR → `main` → tag.
-5. Never `-X ours` / `-X theirs`.
+4. `make test` → model-backed tests → parity oracle.
+5. Commit, push, PR, merge and tag **only after the user explicitly asks**.
+6. Never `-X ours` / `-X theirs`.
 
 If upstream renamed or split a `ds4_*` file: stop, ask. That is the one event
 that can break the whole scheme and it needs a human decision (follow the
@@ -273,6 +295,9 @@ rename, or freeze the child at the previous upstream SHA).
   and add daily pointer-update commits, detached HEADs and a 4-step removal
   dance. Switching to submodules later is additive if a coordinated snapshot
   is ever needed.
+- **No central status file.** `tools/status.sh` derives every child's current
+  merge-base and `sync-*` tag from Git. A hand-maintained SHA table would be a
+  stale second source of truth.
 - Never modifies a child directly. Analyses, proposes, and the work happens in
   `children/<name>` through that repo's PR flow.
 - `tools/` are bash + git + coreutils. No new language, no dependencies. Each
