@@ -95,8 +95,11 @@ explicit user request**.
 
 ## Status
 
-Orchestrator ready. No child bootstrapped yet. First: `sf-ds4flash`
-(`BOOTSTRAP.md`).
+`sf-q3-8flash` is bootstrapped, landed and synced. `sf-ds4-1flash` is in
+bootstrap. `sf-ds4flash` and `sf-glm5-3flash` have not been started.
+
+Which upstream commit each child sits on is deliberately not written here --
+`tools/status.sh` reads it from Git (SPEC.md §A, §H).
 
 ## Licence
 

@@ -14,7 +14,7 @@ git remote rename origin upstream
 git remote set-url upstream "$UPSTREAM_URL"
 git fetch -q upstream
 git checkout -q -B main upstream/main
-[ -n "$org" ] && git remote add origin "git@github.com:$org/$name.git"
+if [ -n "$org" ]; then git remote add origin "git@github.com:$org/$name.git"; fi
 git config rerere.enabled true
 git config rerere.autoupdate true
 base="$(git rev-parse --short=7 HEAD)"
@@ -27,7 +27,11 @@ sed -i '' -e "s/<CHILD>/$name/g" \
           -e "s/<VISION>/$(registry_field "$name" 6)/g" \
           -e "s/<SPECDEC>/$(registry_field "$name" 7)/g" AGENTS.md
 cp "$SF_ROOT/tools/parity/$name.txt" tests/parity_prompts.txt 2>/dev/null || true
-[ "$name" = "sf-ds4flash" ] && cp "$SF_ROOT/templates/sf-ds4flash-NEXT.md" NEXT.md
+if [ -f "$SF_ROOT/templates/$name-NEXT.md" ]; then cp "$SF_ROOT/templates/$name-NEXT.md" NEXT.md; fi
 log "prepared $name at upstream $base (no commit, tag, or push created)"
 echo "Continue with BOOTSTRAP.md step 2. Commit, tag, and push only when explicitly requested."
-[ -z "$org" ] && echo "note: no origin set. Create github.com/<org>/$name and: git remote add origin git@github.com:<org>/$name.git"
+# A bare `[ cond ] && echo` as the last line makes the script exit 1 whenever the
+# condition is false, so a successful bootstrap reported failure.
+if [ -z "$org" ]; then
+    echo "note: no origin set. Create github.com/<org>/$name and: git remote add origin git@github.com:<org>/$name.git"
+fi

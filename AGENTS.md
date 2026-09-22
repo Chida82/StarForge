@@ -81,13 +81,21 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
 14. **Never commit or push without an explicit user request.** Preparing or
     staging changes is allowed; a checklist saying "commit" is not permission.
 15. **Names do not decide ownership; reachability does.** Upstream identifiers
-    often carry the name of the model they were first written for (`glm_graph_*`
-    is the shared Metal graph host, `glm_mtp` is the built-in MTP switch every
-    MTP child uses). Before removing code because its name says "another
-    model", prove it unreachable: constant-false predicate, `nm` showing no
-    referrer, or a runtime probe. Each child records what it has established
-    in its own `AGENTS.md` under "Names that lie"; at a sync, take upstream
-    fixes to those families even when the name looks foreign.
+    often carry the name of the model they were first written for (`glm_mtp` is
+    the built-in MTP switch every MTP child uses). Before removing code because
+    its name says "another model", prove it unreachable: constant-false
+    predicate, `nm` showing no referrer, or a runtime probe. Each child records
+    what it has established in its own `AGENTS.md` under "Names that lie"; at a
+    sync, take upstream fixes to those families even when the name looks foreign.
+
+    **A "names that lie" finding belongs to the child that established it, not
+    to the family.** `glm_graph_*` is the shared Metal graph host in
+    `sf-q3-8flash`, where Qwen3.8 runs on it. In `sf-ds4-1flash` it is dead
+    code: `ds4_session_create` early-returns for `DS4_MODEL_FAMILY_DEEPSEEK41`
+    into `ds41_graph_alloc`, and the `glm_graph` session opens only under
+    `DS4_MODEL_FAMILY_GLM_DSA`. Carrying the sibling's rule across would have
+    preserved ~45 dead kernels. Read a sibling's table as a list of questions to
+    ask, never as a list of answers.
 16. **The child exists to be cheap to read.** The goal is a tree an agent can
     load and reason about with the fewest tokens, so model-specific
     optimisation is fast and safe. Weigh that against sync cost: whole dead
