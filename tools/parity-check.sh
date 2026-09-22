@@ -5,6 +5,9 @@
 #   MODEL defaults to the first GGUF in the child. Prompts: the child's
 #   tests/parity_prompts.txt (created from tools/parity/<child>.txt at bootstrap).
 #   Extra per-prompt flags may follow a TAB (e.g. steering, DSpark, MTP).
+#   SF_PARITY_FLAGS is appended to BOTH binaries on every prompt, for options the
+#   machine needs rather than the prompt: a model larger than RAM only runs with
+#   --ssd-streaming, and without it every prompt fails as "produced no output".
 source "$(dirname "$0")/lib.sh"
 name="${1:?usage: parity-check.sh <child> [model.gguf]}"; require_child "$name"; require_upstream
 dir="$(child_dir "$name")"
@@ -45,7 +48,7 @@ spread_pct() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{m=(NR%2)?a[(NR
 run_one() {
     local tree="$1" bin="$2" pr="$3" ex="$4"
     # shellcheck disable=SC2086
-    ( cd "$tree" && "$bin" -m "$model" --temp 0 --nothink -n 128 $ex -p "$pr" ) \
+    ( cd "$tree" && "$bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $ex -p "$pr" ) \
         2>&1 >/dev/null | grep -oE '[0-9.]+ t/s' | tail -1 | cut -d' ' -f1
 }
 
@@ -65,9 +68,9 @@ while IFS=$'\t' read -r prompt extra; do
         esac
     done
     # shellcheck disable=SC2086
-    ( cd "$wt"  && "$up_bin"    -m "$model" --temp 0 --nothink -n 128 $extra_abs -p "$prompt" ) > "$out/$i.up.txt"    2> "$out/$i.up.err" || true
+    ( cd "$wt"  && "$up_bin"    -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs -p "$prompt" ) > "$out/$i.up.txt"    2> "$out/$i.up.err" || true
     # shellcheck disable=SC2086
-    ( cd "$dir" && "$child_bin" -m "$model" --temp 0 --nothink -n 128 $extra_abs -p "$prompt" ) > "$out/$i.child.txt" 2> "$out/$i.child.err" || true
+    ( cd "$dir" && "$child_bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs -p "$prompt" ) > "$out/$i.child.txt" 2> "$out/$i.child.err" || true
     if [ ! -s "$out/$i.up.txt" ] || [ ! -s "$out/$i.child.txt" ]; then
         echo "  [FAIL] $i: $prompt  → a binary produced no output, see $out/$i.*.err"; fail=1
     elif cmp -s "$out/$i.up.txt" "$out/$i.child.txt"; then

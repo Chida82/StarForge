@@ -311,12 +311,21 @@ rename, or freeze the child at the previous upstream SHA).
 
   > `sf-<model>` is a specialized fork of [ds4 / DwarfStar](https://github.com/antirez/ds4)
   > by Salvatore Sanfilippo and contributors, reduced to **<Model name>** on
-  > **Apple Metal**. Upstream base commit: `<sha7>` (updated at every sync).
+  > **Apple Metal**. The upstream commit this fork sits on is not written here:
+  > ask git, which cannot go stale --
+  > `git describe --tags --match 'sync-*' --abbrev=0` for the last sync, or
+  > `git merge-base HEAD upstream/main` for the base itself.
   > Everything that works here works because of ds4, llama.cpp and GGML; see
   > `LICENSE` and the acknowledgements below.
 
   followed by upstream's "Acknowledgements to llama.cpp and GGML" section,
   kept verbatim.
+
+  This template used to end its first paragraph with "Upstream base commit:
+  `<sha7>` (updated at every sync)", which contradicted §A: a SHA typed into a
+  file is a second source of truth and goes stale the moment a sync lands
+  without someone remembering to edit prose. Both children written so far
+  resolved it the same way, by pointing at git, so the template now says that.
 
 ## §J Co-existence on one machine
 

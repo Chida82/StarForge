@@ -11,6 +11,11 @@ with its separate 0731 support GGUF for `sf-ds4flash`, built-in MTP for
 GLM/Qwen, none for V4.1. Replace path placeholders with real absolute paths at
 bootstrap.
 
+`SF_PARITY_FLAGS` is for options the machine needs rather than the prompt, and
+is appended to both binaries: a model larger than RAM only runs with
+`--ssd-streaming`, and without it every prompt fails as "a binary produced no
+output" -- which reads like an ablation bug rather than a missing flag.
+
 Written at bootstrap with the model at hand; refined when a diff shows a
 prompt that is flaky under greedy decoding (there should be none, greedy is
 deterministic; if one is, that IS a finding).
