@@ -95,6 +95,31 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
     usually are not. There is no sync ledger file: the `sf-ablate`/`sf-keep`
     marker at the cut and the commit message are the record.
 
+17. **A sync can turn a child's passing test into a lie.** Upstream may narrow a
+    predicate to exclude the very model a child kept: `d31089d` changed a
+    streaming guard to `... && model_syntax != SERVER_MODEL_SYNTAX_QWEN`, and in
+    a Qwen-only child, whose enum has that one value, the guard became
+    unreachable. Two inherited tests asserted it fires and started failing.
+    Neither the code nor the tests were wrong -- the child's single-model
+    invariant met an upstream distinction drawn along the same line. When a test
+    that passed before a sync fails after it, first ask whether the behaviour it
+    asserts can still occur in this child; if it cannot, the test goes, with a
+    marker saying which invariant killed it. Establish the pre-sync baseline by
+    running the suite in a worktree at the child's `main`, rather than assuming
+    which failures are pre-existing.
+
+18. **A trap you can only document is a trap you will hit again.** Upstream's
+    `make cpu` links the CPU-reference build over the same four binary names as
+    the default build. make cannot tell the flavours apart, so afterwards a
+    plain `make` relinks nothing and the next model-backed run dies with
+    "requires Metal" — the binaries are newer than every object. This was found,
+    written into the child's `AGENTS.md` and its release QA, and then hit again
+    during the `0aaea5a` sync, where it produced a full parity failure that read
+    like a regression. `make clean` recovers a run; only separate names
+    (`<bin>-cpu*`) make the state unreachable, which is what the child now does.
+    Prefer removing the failure mode over describing it: when a note has to say
+    "remember to", the build should be doing it instead.
+
 ## Which file for which task
 
 | Task | Read | Run |

@@ -42,6 +42,13 @@ script created no commit or tag).
   ```
 - Replace targets and `-o` names: `ds4`→`$(BIN)`, `ds4-server`→`$(BIN)-server`,
   `ds4-bench`→`$(BIN)-bench`, `ds4-eval`→`$(BIN)-eval`. Object names unchanged.
+- In the `cpu` recipe, link to `$(BIN)-cpu`, `$(BIN)-cpu-server`,
+  `$(BIN)-cpu-bench`, `$(BIN)-cpu-eval`, and add them to `clean`. Upstream links
+  the CPU-reference build over the same four default names; make cannot tell the
+  flavours apart, so a later `make` relinks nothing and the next model-backed run
+  dies with "requires Metal". That has cost hours twice, including a whole parity
+  run that read like a regression, so remove the collision here rather than
+  warning about it downstream.
 - Delete the non-Darwin branch (`else` of `ifeq ($(UNAME_S),Darwin)` …
   `endif`), all `NVCC*`, `HIPCC*`, `MMQ_*`, `ROCM_*`, `CUDA_*` variables and
   targets, `cuda*`, `strix-halo`, `rocm`, `test-rocm`, `test-*-cuda`,
@@ -60,7 +67,8 @@ script created no commit or tag).
 Commit: `sf: Makefile identity (BIN, SF_* defines), Darwin only, no agent`.
 
 **Check**: `make` builds four binaries named `<child>*`; `make help` mentions
-only them; `grep -c 'ds4-agent\|NVCC\|HIPCC' Makefile` = 0.
+only them; `grep -c 'ds4-agent\|NVCC\|HIPCC' Makefile` = 0; `make cpu && make`
+leaves a binary that still starts on Metal.
 
 ## 3. Source: the four defines and the paths
 

@@ -33,6 +33,22 @@ fi
 ( cd "$wt" && make -s -j ds4 ) || die "upstream build failed"
 up_bin="$wt/ds4"
 
+# Generation speed printed on stderr by both binaries, last occurrence.
+speed_of() { grep -oE '[0-9.]+ t/s' "$1" | tail -1 | cut -d' ' -f1 || true; }
+pct_delta() { awk -v u="$1" -v c="$2" 'BEGIN{printf "%.4f", (c-u)/u*100}'; }
+median() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{print (NR%2)?a[(NR+1)/2]:(a[NR/2]+a[NR/2+1])/2}'; }
+# Peak-to-peak of one binary's samples, as a percentage of their median: how
+# noisy this prompt is on that binary. The two sides are measured separately --
+# pooling them would hide a real difference inside an invented spread.
+spread_pct() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{m=(NR%2)?a[(NR+1)/2]:(a[NR/2]+a[NR/2+1])/2; printf "%.1f", (a[NR]-a[1])/m*100}'; }
+# One extra timing run, same flags as the graded run; stdout is discarded.
+run_one() {
+    local tree="$1" bin="$2" pr="$3" ex="$4"
+    # shellcheck disable=SC2086
+    ( cd "$tree" && "$bin" -m "$model" --temp 0 --nothink -n 128 $ex -p "$pr" ) \
+        2>&1 >/dev/null | grep -oE '[0-9.]+ t/s' | tail -1 | cut -d' ' -f1
+}
+
 fail=0; i=0
 while IFS=$'\t' read -r prompt extra; do
     [ -z "$prompt" ] && continue; [[ "$prompt" == \#* ]] && continue
@@ -60,10 +76,30 @@ while IFS=$'\t' read -r prompt extra; do
         echo "  [DIFF] $i: $prompt  → diff $out/$i.up.txt $out/$i.child.txt"; fail=1
     fi
     # tokens/s: both binaries print generation speed on stderr; compare if both parse.
-    ut="$(grep -oE '[0-9.]+ t/s' "$out/$i.up.err" | tail -1 | cut -d' ' -f1 || true)"
-    ct="$(grep -oE '[0-9.]+ t/s' "$out/$i.child.err" | tail -1 | cut -d' ' -f1 || true)"
+    ut="$(speed_of "$out/$i.up.err")"
+    ct="$(speed_of "$out/$i.child.err")"
     if [ -n "$ut" ] && [ -n "$ct" ]; then
-        awk -v u="$ut" -v c="$ct" -v i="$i" 'BEGIN{ d=(c-u)/u*100; printf "        speed %s: up %.1f t/s, child %.1f t/s (%+.1f%%)%s\n", i, u, c, d, (d<-2?"  ← SLOWER >2%":"") ; if (d<-2) exit 3 }' || fail=1
+        d="$(pct_delta "$ut" "$ct")"
+        # A single run is too noisy for a 2% gate: a stray scheduling hiccup has
+        # produced -7% on a tree that measures -0.07% over medians. Re-sample
+        # only when the cheap reading trips, so the common case stays one run.
+        if awk -v d="$d" 'BEGIN{exit !(d < -2)}'; then
+            echo "        speed $i: single run $(printf '%+.1f' "$d")%, re-sampling"
+            us="$ut"; cs="$ct"
+            for _ in 1 2 3 4; do
+                us="$us $(run_one "$wt" "$up_bin" "$prompt" "$extra_abs")"
+                cs="$cs $(run_one "$dir" "$child_bin" "$prompt" "$extra_abs")"
+            done
+            ut="$(median $us)"; ct="$(median $cs)"
+            d="$(pct_delta "$ut" "$ct")"
+            # A prompt whose own answer is a few tokens long times out its
+            # generation over so little work that its spread dwarfs the gate:
+            # print it, so a trip on a ±15% prompt is not read as a regression.
+            spread="$(awk -v a="$(spread_pct $us)" -v b="$(spread_pct $cs)" 'BEGIN{print a>b?a:b}')"
+            awk -v u="$ut" -v c="$ct" -v i="$i" -v d="$d" -v s="$spread" 'BEGIN{ printf "        speed %s: median of 5: up %.1f t/s, child %.1f t/s (%+.1f%%), run spread %.0f%%%s\n", i, u, c, d, s, (d<-2?"  ← SLOWER >2%":"") ; if (d<-2) exit 3 }' || fail=1
+        else
+            awk -v u="$ut" -v c="$ct" -v i="$i" -v d="$d" 'BEGIN{ printf "        speed %s: up %.1f t/s, child %.1f t/s (%+.1f%%)\n", i, u, c, d }'
+        fi
     fi
 done < "$prompts"
 echo

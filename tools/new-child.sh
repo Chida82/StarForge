@@ -25,8 +25,7 @@ sed -i '' -e "s/<CHILD>/$name/g" \
           -e "s#<HOME>#$(registry_field "$name" 4)#g" \
           -e "s#<LOCK>#$(registry_field "$name" 5)#g" \
           -e "s/<VISION>/$(registry_field "$name" 6)/g" \
-          -e "s/<SPECDEC>/$(registry_field "$name" 7)/g" \
-          -e "s/<BASE_SHA>/$base/g" AGENTS.md
+          -e "s/<SPECDEC>/$(registry_field "$name" 7)/g" AGENTS.md
 cp "$SF_ROOT/tools/parity/$name.txt" tests/parity_prompts.txt 2>/dev/null || true
 [ "$name" = "sf-ds4flash" ] && cp "$SF_ROOT/templates/sf-ds4flash-NEXT.md" NEXT.md
 log "prepared $name at upstream $base (no commit, tag, or push created)"

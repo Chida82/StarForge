@@ -29,7 +29,29 @@ require_child() {
 require_upstream() {
     [ -d "$UPSTREAM_DIR/.git" ] || die "upstream not cloned at $UPSTREAM_DIR (run tools/clone-all.sh)"
 }
-# Upstream SHA a child is based on: merge-base of its main with upstream/main.
-child_base_sha() { git -C "$(child_dir "$1")" merge-base main upstream/main; }
+# Upstream SHA a child is based on. During a sync the merge is prepared but not
+# committed, and the child's main has not moved yet, so merge-base against main
+# would still name the *previous* base and the parity oracle would grade the
+# merged tree against the upstream it just left behind. MERGE_HEAD, when
+# present, is the base this sync is landing on; otherwise HEAD is right both on
+# main and on a committed sync branch.
+child_base_sha() {
+    local d; d="$(child_dir "$1")"
+    if child_sync_in_progress "$1"; then
+        git -C "$d" rev-parse MERGE_HEAD
+    else
+        git -C "$d" merge-base HEAD upstream/main
+    fi
+}
+# The base the child's committed history sits on, ignoring any sync in flight.
+# This is the number to report: during a sync the two disagree, and a view that
+# showed the landing base next to "25 commits behind" would contradict itself.
+child_committed_base_sha() { git -C "$(child_dir "$1")" merge-base main upstream/main; }
+# True while a prepared, uncommitted sync merge is present.
+child_sync_in_progress() {
+    local d mh; d="$(child_dir "$1")"
+    mh="$(git -C "$d" rev-parse --git-path MERGE_HEAD)"
+    case "$mh" in /*) [ -f "$mh" ] ;; *) [ -f "$d/$mh" ] ;; esac
+}
 # Latest sync tag, if any.
 child_last_sync_tag() { git -C "$(child_dir "$1")" tag -l 'sync-*' --sort=-creatordate | head -1; }

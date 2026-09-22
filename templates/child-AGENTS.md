@@ -21,10 +21,17 @@ what this repo is and how to work in it. For code-quality rules read
 | Speculative decoding | <SPECDEC> |
 | Steering | yes (`--dir-steering-file`, `/steer`, `dir-steering/`) |
 | TP / RDMA / pipeline | yes |
-| Upstream base | `<BASE_SHA>` at bootstrap; current: `git describe --tags --match 'sync-*' --abbrev=0` |
+| Upstream base | never written down: `git describe --tags --match 'sync-*' --abbrev=0` names the last sync, `git merge-base HEAD upstream/main` the base. A SHA typed into a file is a second source of truth that goes stale (SPEC.md §A) |
 
 Other children of the family may be installed on the same machine: paths and
 ports above are chosen so nothing collides with them or with upstream ds4.
+
+`make cpu` must write its own binaries (`<CHILD>-cpu`, `-cpu-server`,
+`-cpu-bench`, `-cpu-eval`). Upstream links the CPU-reference build over the four
+default names; make cannot distinguish the flavours, so a later `make` relinks
+nothing and the next model-backed run fails with "requires Metal". Fix the
+Makefile at bootstrap rather than warning about it — the warning has already
+failed twice.
 
 ## What is NOT here (do not re-add)
 

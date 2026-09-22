@@ -118,10 +118,15 @@ commit yet.
 ## 6. Verify
 
 ```sh
-make && make test                     # model-less, always
+make clean && make && make test       # model-less, always
 # model-backed (needs GGUF): the kept kernel/metal tests, ds4_test, eval smoke
 cd ../.. && tools/parity-check.sh <child>
 ```
+
+Run the model-backed suite **also in a worktree at the child's `main`**, and
+compare: a sync's failures are only the ones the baseline does not already
+have. `git worktree add --detach <tmp> main` costs one build and settles it
+without guesswork.
 
 Parity **must** be token-identical and within ±2% speed against upstream at
 the **new** merge-base (the script computes it). A speed regression with
@@ -150,9 +155,11 @@ tools/sync-finish.sh <child> --push   # --push is mandatory
 tools/status.sh                       # BEHIND = 0
 ```
 
-Update `README.md` first line of the child ("Upstream base commit") if it
-prints the SHA statically; prefer the `git describe` form from the template so
-nothing needs updating.
+No file records the new base: `README.md` and the child's `AGENTS.md` point at
+`git describe --tags --match 'sync-*' --abbrev=0` and `git merge-base HEAD
+upstream/main` instead of printing a SHA. If a child still inscribes one, this
+is the step that replaces it with the derived form -- an inscribed SHA is a
+second source of truth and the first sync makes it a lie (SPEC.md §A).
 
 **Check**: `git tag -l 'sync-*'` shows the new tag; `status.sh` BEHIND = 0.
 
@@ -172,5 +179,8 @@ distance.
 | Same conflicts again on the second sync | rerere not enabled or `.git/rr-cache` lost | `git config rerere.enabled true`; resolve; never delete `.git/rr-cache` |
 | Merge clean, `make` fails | upstream added a call into removed code | find the caller, remove the call or the whole new path, `ablate(<area>): post-sync` |
 | `make test` green, parity DIFF | ablation touched shared numerics, or upstream changed sampling | compare with `git bisect` between merge-base and HEAD on the child; ask if not obvious |
+| `PARITY FAILED`, tokens identical, one prompt >2% slower | the speed gate reads a single run, and a prompt whose answer is a few tokens long has ±15% spread of its own | the script re-samples to a median of 5 and prints the run spread when a reading trips; a trip whose spread dwarfs the delta is noise. Do not widen the 2% threshold |
+| `PARITY FAILED`, every prompt "produced no output", child stderr says "requires Metal" | `make cpu` linked the CPU-reference build over the four default binary names, and a later `make` relinked nothing: the binaries were newer than every object. This cost the first parity run of the 0aaea5a sync, and it had already cost hours once before — documenting it was not enough | `make clean && make` recovers the run. The fix is structural: give the CPU flavour its own names (`<bin>-cpu`, `-cpu-server`, `-cpu-bench`, `-cpu-eval`), as `sf-q3-8flash` now does. Never run `make cpu` between a build and a model-backed run |
+| Parity passes against the *old* upstream | during a sync the child's `main` has not moved, so a base taken from `main` names the previous sync | `child_base_sha` reads `MERGE_HEAD` while a merge is prepared, so step 6 grades against the commit being landed. `tools/status.sh` keeps reporting the committed base and flags the prepared sync separately |
 | Upstream renamed a `ds4_*` file | scheme at risk | **stop, ask**: follow rename in child vs freeze child at previous SHA |
 | `sync-start.sh` refuses: dirty tree | local edits | `git stash` first, or ask the user to authorize a commit |
