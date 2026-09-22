@@ -128,6 +128,22 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
     Prefer removing the failure mode over describing it: when a note has to say
     "remember to", the build should be doing it instead.
 
+19. **A make target that does not exist exits 0.** `make test` on a Makefile
+    with no `test:` rule prints "Nothing to be done for `test'" and returns
+    success. During the `sf-ds4-1flash` bootstrap a greedy regex meant to drop
+    two test rules matched across blank lines and ate the whole tail of the
+    Makefile -- `test:`, `clean:`, the `ds4_test` link, the sampling,
+    session-state, TP and prompt-prefix rules. Every "make test: 0" after that
+    was a missing target, not a passing suite, and the mistake survived several
+    batches because the exit code was the only thing being read. The gate is
+    not the exit code: it is **output that names the tests that ran**. When the
+    suite is the thing standing between an ablation and a silent regression,
+    read its lines, and after any Makefile surgery check that the target list
+    still exists (`make -n test | head`, or `grep -c '^test:' Makefile`).
+    Editing a Makefile by paragraph is also how the `test:` block disappeared a
+    second time: a comment above it mentioned `--dspark`, and a filter that
+    dropped paragraphs matching removed features took the rule with it.
+
 ## Which file for which task
 
 | Task | Read | Run |

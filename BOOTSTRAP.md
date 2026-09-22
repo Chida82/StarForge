@@ -68,7 +68,10 @@ Commit: `sf: Makefile identity (BIN, SF_* defines), Darwin only, no agent`.
 
 **Check**: `make` builds four binaries named `<child>*`; `make help` mentions
 only them; `grep -c 'ds4-agent\|NVCC\|HIPCC' Makefile` = 0; `make cpu && make`
-leaves a binary that still starts on Metal.
+leaves a binary that still starts on Metal; `make -n test | head` prints real
+commands. That last one matters after every Makefile edit: a missing `test:`
+rule makes `make test` print "Nothing to be done" and exit **0**, so the gate
+you are about to rely on for the whole ablation silently stops running.
 
 ## 3. Source: the four defines and the paths
 
