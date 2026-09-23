@@ -55,7 +55,11 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
    regions conflict at every sync; rerere replays the resolution. This is the
    single most important mechanism in the whole plan.
 4. **Steering stays in every child.** `--dir-steering-file`, `/steer`,
-   `dir-steering/`. If the model does not support it, upstream's error stays.
+   `dir-steering/`. If the model does not support it, upstream's error stays,
+   **word for word**, even when it names things the child has removed (CUDA,
+   DSpark). During the `sf-ds4-1flash` deep prune the V4.1 refusal was
+   "tidied", which broke the docs that quote it and added a sync conflict for
+   nothing. Reverted.
 5. **TP / RDMA / pipeline stay in every child.** The CPU reference path stays.
    This holds for pipeline (layer-slice) parallelism even in a child where it
    does not work yet for that model: the owner wants it in every child and it
@@ -100,6 +104,15 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
     `DS4_MODEL_FAMILY_GLM_DSA`. Carrying the sibling's rule across would have
     preserved ~45 dead kernels. Read a sibling's table as a list of questions to
     ask, never as a list of answers.
+
+    **The child's own table binds its own proposals.** During the
+    `sf-ds4-1flash` deep prune, a cleanup plan proposed deleting
+    `metal/glm53_*.metal` "by name" although that child's table already listed
+    them as required by the V4.1 vision encoder. The fix was caught before any
+    edit only because the call sites were read. Before proposing a removal, grep
+    the child's "Names that lie" table for the identifier; before writing a
+    constant-fold rule ("field X is never assigned"), grep the assignments
+    first, not after the fold has run.
 16. **The child exists to be cheap to read.** The goal is a tree an agent can
     load and reason about with the fewest tokens, so model-specific
     optimisation is fast and safe. Weigh that against sync cost: whole dead

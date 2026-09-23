@@ -188,6 +188,37 @@ compiled or nearly compiled while being wrong):
   of the file.
 - Public (non-static) functions are never reported unused: find them with a
   call graph from `ds4.h`, then prove each guard constant.
+- A live call site does not make a callee live. `metal_graph_cuda_*` were called
+  from live code and still returned a constant on Apple; the branches they
+  guarded were ~3k dead lines. Read what the callee returns, and treat a field
+  that nothing assigns (zero from calloc) as a constant too.
+- Three kinds of dead code no diagnostic reports: a static function marked
+  `DS4_MAYBE_UNUSED`, a struct field or type that nothing reads (a declaration
+  or an assignment still counts as a use), and a stub that only `(void)`s its
+  arguments and returns a constant. In `metal/` the same shape is a pipeline
+  created at init and freed at cleanup but never dispatched: its kernel looks
+  referenced.
+- A folder that counts `&x` as "address taken" must not match `&&`. An enum
+  type name can be unused while its enumerators are used. A field reached
+  through `name##_suffix` accessor macros never appears under its full name.
+- A prototype regex without a column-0 anchor also matches indented call
+  statements (`x = f(...);`) and deletes them.
+- `a || b || cuda ? f() : g` parses as `(a || b || cuda) ? f() : g`. Folding
+  `cuda` to false does not remove the ternary; rewrite the whole expression.
+- Drop an option only after checking every frontend that sets it (CLI, server,
+  bench, eval, `speed-bench/`), and every test that includes `ds4.c` directly.
+  Those tests are the only callers some static helpers have.
+- Build **every** test and bench binary (`make -n` lists them; `make test` does
+  not build them all) before trusting a prune: `test_metal_ssd_experts` and
+  `test_deepseek41_graph` still called removed symbols after `make test` was
+  green, and `nm` cannot see imports of binaries linked straight from `.c`.
+- A dry run is not optional for a pruner that matches by name: the field pruner
+  first listed ~80 live `*_by_tier` fields as dead. Read the dry-run list,
+  grouped by owner struct, before applying it, and restrict field removal to
+  host-only state structs (never GPU argument structs, positional initializers
+  or anything written to disk).
+- A mechanical rewrite that also changes user-visible text (an error message,
+  a log line quoted in docs) is two changes. Keep upstream's text.
 
 **Batch discipline**: one area per commit (`ablate(glm): …`, `ablate(qwen): …`,
 `ablate(ds41): …`, `ablate(pro): …`), `make test` green before each commit.
