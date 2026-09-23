@@ -57,6 +57,10 @@ merge-bases and `sync-<sha7>` tags with `tools/status.sh`.
 4. **Steering stays in every child.** `--dir-steering-file`, `/steer`,
    `dir-steering/`. If the model does not support it, upstream's error stays.
 5. **TP / RDMA / pipeline stay in every child.** The CPU reference path stays.
+   This holds for pipeline (layer-slice) parallelism even in a child where it
+   does not work yet for that model: the owner wants it in every child and it
+   will be fixed. Do not remove code only the layer-slice path reaches, and
+   record in the child's `AGENTS.md` whether it currently works.
 6. **Speculative decoding follows the registry exactly.** In particular,
    `sf-ds4flash` keeps DSpark and its separate 0731 support GGUF, but removes
    the legacy one-stage MTP path.

@@ -165,6 +165,30 @@ In `ds4.c`:
    `tests/*<other>*`, `docs/<OTHER>.md`, `download_model.sh` targets,
    `MODEL_CARD.md` sections, `speed-bench/*` of other models.
 
+**Mechanical folding traps** (all hit during the `sf-ds4-1flash` bootstrap; each
+compiled or nearly compiled while being wrong):
+- A line that is only `{` after `if (…)` is an **Allman if-body**, not a bare
+  block kept by the folder. Treat a block as bare only when the line before it
+  ends in `;`, `{` or `}`.
+- A `return` that is the body of a braceless `if` is not "code after return".
+  Check indentation and the previous line before cutting what follows.
+- `#if A … const bool x = f(); #else const bool x = false; #endif`: folding the
+  `#else` value into the uses rewrites the live arm. Skip locals declared twice
+  or inside a preprocessor block.
+- `} else` / `#endif` / `if (…)`: an else chain that crosses a directive has
+  arms that exist only in some builds. Skip it.
+- `#ifdef GPU … return X; #endif TAIL`: TAIL is dead in the GPU build and live in
+  the CPU build. Move it to an `#else` arm; delete it only when the enclosing
+  block is GPU-only too. `unifdef` (in `/usr/bin`) resolves one macro safely.
+- A regex that finds a function by name can match its **prototype** and brace-
+  match the next function; a non-greedy `typedef struct {…} name;` can start at
+  the first typedef in the file. Match definitions only, and assert the span.
+- A function the Metal build no longer needs but a `-DDS4_NO_GPU` or test build
+  does must go back **in place**, wrapped in that build's guard, not at the top
+  of the file.
+- Public (non-static) functions are never reported unused: find them with a
+  call graph from `ds4.h`, then prove each guard constant.
+
 **Batch discipline**: one area per commit (`ablate(glm): …`, `ablate(qwen): …`,
 `ablate(ds41): …`, `ablate(pro): …`), `make test` green before each commit.
 A red `make test` → `git checkout .` and split the batch. In-file cuts get

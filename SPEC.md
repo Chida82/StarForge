@@ -59,7 +59,10 @@ Design decisions that follow from this:
   goes.
 - **TP / RDMA / pipeline parallelism**: `ds4_tp.c/.h`, `ds4_distributed.c/.h`,
   `ds4_gpu_tp.h`, `docs/DISTRIBUTED.md`, `tests/test_tp_*`,
-  `tests/test_metal_tp_*`. Kept in every child.
+  `tests/test_metal_tp_*`. Kept in every child. Pipeline (layer-slice)
+  parallelism is kept even where it does not yet work for the child's model:
+  it is scheduled to be fixed, so the code it reaches (the `ds4_session_*layer*`
+  entry points and whatever graph code they call) is not ablation material.
 - **SSD streaming**: `ds4_ssd.c/.h`, hotlist for the child's model,
   `docs/SSD_STREAMING.md`.
 - **Server disk KV cache**: `ds4_kvstore.c/.h`, `rax.c/.h`, `rax_malloc.h`.

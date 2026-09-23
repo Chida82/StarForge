@@ -98,7 +98,7 @@ while IFS=$'\t' read -r prompt extra; do
             # A prompt whose own answer is a few tokens long times out its
             # generation over so little work that its spread dwarfs the gate:
             # print it, so a trip on a ±15% prompt is not read as a regression.
-            spread="$(awk -v a="$(spread_pct $us)" -v b="$(spread_pct $cs)" 'BEGIN{print a>b?a:b}')"
+            spread="$(awk -v a="$(spread_pct $us)" -v b="$(spread_pct $cs)" 'BEGIN{print ((a+0 > b+0) ? a : b)}')"
             awk -v u="$ut" -v c="$ct" -v i="$i" -v d="$d" -v s="$spread" 'BEGIN{ printf "        speed %s: median of 5: up %.1f t/s, child %.1f t/s (%+.1f%%), run spread %.0f%%%s\n", i, u, c, d, s, (d<-2?"  ← SLOWER >2%":"") ; if (d<-2) exit 3 }' || fail=1
         else
             awk -v u="$ut" -v c="$ct" -v i="$i" -v d="$d" 'BEGIN{ printf "        speed %s: up %.1f t/s, child %.1f t/s (%+.1f%%)\n", i, u, c, d }'
