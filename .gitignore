@@ -6,3 +6,5 @@ upstream/*
 # Parity oracle scratch output
 tools/parity/out/
 .DS_Store
+# Speed comparison output
+tools/speed/out/

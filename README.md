@@ -58,6 +58,7 @@ All bash + git + coreutils, in `tools/`:
 | `sync-start.sh <child>` | branch `sync/<sha7>`, apply `upstream/main` as an uncommitted merge, list conflicts |
 | `rm-deleted-conflicts.sh <child>` | resolve modify/delete conflicts by keeping the child's deletions |
 | `parity-check.sh <child> [gguf]` | build upstream at the child's merge-base and the child; same cache-backed GGUF/symlink, same prompts, greedy; token-identical + speed ±2% |
+| `speed-compare.sh <child> <gguf>` | same bench sweep on the child, a 3-minute rest, then upstream at the child's base (`SF_SPEED_FLAGS`, default `--ssd-streaming`); CSVs and per-frontier deltas in `tools/speed/out/`; informational, gates nothing |
 | `sync-finish.sh <child> --push` | after the PR is merged and push explicitly authorized: tag `main` as `sync-<sha7>`, push |
 | `parity/<child>.txt` | prompt sets for the oracle (TAB → extra flags: steering plus DSpark or MTP per child) |
 | `lib.sh` | shared helpers and the **registry** (keep in sync with `AGENTS.md`) |
