@@ -21,6 +21,30 @@ Each child is a separate repository. **This** repository is the orchestrator:
 rules, procedures, tools, and a read-only mirror of upstream. No inference
 code lives here.
 
+## Why
+
+ds4 is built around a few models rather than as a general GGUF runner, and it
+is meant to be read and changed with a coding agent: a working template to
+adapt to your model and hardware, not a product that covers every setup.
+StarForge pushes both ideas to the end and makes the result repeatable, one
+child per model:
+
+- **Smaller code, clearer to an LLM.** `SPEC.md` decides what every child
+  deletes and what it must keep, so each child shrinks the same way. What is
+  left is a tree a person or a coding agent can load whole and reason about,
+  which makes it cheap to try an idea on one model, measure it and keep or
+  drop it.
+- **Metal only.** The children are developed and tested on one machine, an
+  Apple M5 Max, so Metal is the only GPU backend any child keeps.
+- **Small, but not frozen.** The orchestrator's tools keep every child merging
+  `upstream/main` with plain `git merge`, `rerere` and the parity oracle, so
+  ds4's fixes and speedups keep flowing into a tree that stays small.
+- **Room to investigate.** Because each child holds one model, open ds4 pull
+  requests can be analysed against that model and ported where they hold up,
+  and further improvements can be investigated for Apple Silicon. That work
+  happens and is recorded inside each child (its `docs/upstream-prs.md`), not
+  here.
+
 ## If you just want to run a model
 
 Go to the child's repo. Its README tells you `make`, `./download.sh <quant>`,
@@ -96,8 +120,9 @@ explicit user request**.
 
 ## Status
 
-`sf-q3-8flash` is bootstrapped, landed and synced. `sf-ds4-1flash` is in
-bootstrap. `sf-ds4flash` and `sf-glm5-3flash` have not been started.
+`sf-q3-8flash` and `sf-ds4-1flash` are bootstrapped, published and synced, and
+each now carries its own performance work. `sf-ds4flash` and `sf-glm5-3flash`
+have not been started.
 
 Which upstream commit each child sits on is deliberately not written here --
 `tools/status.sh` reads it from Git (SPEC.md §A, §H).
