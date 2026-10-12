@@ -110,7 +110,7 @@ sections from `README.md`, `QA_BEFORE_RELEASES.md`, `docs/TESTING.md`,
 
 Commit: `ablate(agent): remove ds4-agent, web fetch, agent tests and docs`.
 
-**Check**: `make && make test` green; `grep -rli 'ds4-agent' --include=*.md . | wc -l` = 0.
+**Check**: `make && make test` green; `git grep --untracked -li 'ds4-agent' -- '*.md' | wc -l` = 0.
 
 ## 5. Remove non-Metal backends
 
@@ -133,7 +133,7 @@ table, MODELS, PERFORMANCE, DISTRIBUTED, TESTING, SSD_STREAMING, AGENT.md goals)
 
 Commits: `ablate(cuda): …`, `ablate(rocm): …`, `ablate(docs): non-Metal platforms`.
 
-**Check**: `make && make test` green; `grep -rl 'DS4_ROCM_BUILD\|cudaMalloc\|hipcc' --include=*.c --include=*.m --include=*.h . | wc -l` = 0.
+**Check**: `make && make test` green; `git grep --untracked -lE 'DS4_ROCM_BUILD|cudaMalloc|hipcc' -- '*.c' '*.m' '*.h' | wc -l` = 0.
 
 ## 6. Freeze the shape (compiler-guided ablation, SPEC §F.1)
 
@@ -304,8 +304,9 @@ binaries. Rewrite the README head with the attribution notice (SPEC §I),
 keep upstream's acknowledgements verbatim. Update `AGENT.md` Layout and Goals.
 `AGENTS.md` (template) is already there and points to the `Chida82` organization.
 
-**Check**: `grep -rliE 'cuda|rocm|strix|ds4-agent|<other model names>' --include=*.md . ` returns
-only `LICENSE`-adjacent or acknowledgement text you intentionally kept.
+**Check**: `git grep --untracked -liE 'cuda|rocm|strix|ds4-agent|<other model names>' -- '*.md'` returns
+only `LICENSE`-adjacent or acknowledgement text you intentionally kept. The checks use
+`git grep` so that worktrees under `.claude/worktrees/` (excluded, not tracked) are not counted.
 
 ## 10. Model-backed verification
 
