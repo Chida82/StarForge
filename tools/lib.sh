@@ -22,9 +22,12 @@ registry_names() { echo "$REGISTRY" | awk -F'|' 'NF{print $1}'; }
 registry_field() { # name field-index(1-based)
     echo "$REGISTRY" | awk -F'|' -v n="$1" -v i="$2" '$1==n{print $i}'
 }
-child_dir() { echo "$CHILDREN_DIR/$1"; }
+# A child's working tree. SF_CHILD_DIR points one run at another checkout of
+# the same child, such as a branch worktree, so the oracle grades that tree and
+# not the registry clone, which may sit on main. A worktree's .git is a file.
+child_dir() { echo "${SF_CHILD_DIR:-$CHILDREN_DIR/$1}"; }
 require_child() {
-    [ -d "$(child_dir "$1")/.git" ] || die "child '$1' not cloned at $(child_dir "$1") (run tools/clone-all.sh)"
+    [ -e "$(child_dir "$1")/.git" ] || die "child '$1' not cloned at $(child_dir "$1") (run tools/clone-all.sh)"
 }
 require_upstream() {
     [ -d "$UPSTREAM_DIR/.git" ] || die "upstream not cloned at $UPSTREAM_DIR (run tools/clone-all.sh)"
