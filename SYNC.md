@@ -106,7 +106,7 @@ area (a new `metal/glm53_x.metal`, a new `tests/test_cuda_y.c`, a new
 `ds4_engine_is_<other>()` branch). Merge does not conflict on additions.
 
 ```sh
-git diff --stat main..HEAD | grep -Ei 'cuda|rocm|agent|<other model tags>'   # new files to remove
+git diff --stat main..HEAD | grep -Ei 'cuda|rocm|agent|<other model tags>|<spec-dec the child removed: dspark, mtp>'   # new files to remove (upstream adds DSpark files with no conflict)
 make 2>&1 | grep -c unused-function                                            # new dead code
 ```
 
