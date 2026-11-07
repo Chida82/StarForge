@@ -5,6 +5,8 @@
 #   MODEL defaults to the first GGUF in the child. Prompts: the child's
 #   tests/parity_prompts.txt (created from tools/parity/<child>.txt at bootstrap).
 #   Extra per-prompt flags may follow a TAB (e.g. steering, DSpark, MTP).
+#   A line `@path` reads its prompt from that file of the child (--prompt-file),
+#   for prompts too long for one line.
 #   SF_PARITY_FLAGS is appended to BOTH binaries on every prompt, for options the
 #   machine needs rather than the prompt: a model larger than RAM only runs with
 #   --ssd-streaming, and without it every prompt fails as "produced no output".
@@ -46,9 +48,9 @@ median() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{print (NR%2)?a[(NR
 spread_pct() { printf '%s\n' "$@" | sort -n | awk '{a[NR]=$1} END{m=(NR%2)?a[(NR+1)/2]:(a[NR/2]+a[NR/2+1])/2; printf "%.1f", (a[NR]-a[1])/m*100}'; }
 # One extra timing run, same flags as the graded run; stdout is discarded.
 run_one() {
-    local tree="$1" bin="$2" pr="$3" ex="$4"
+    local tree="$1" bin="$2" ex="$3"; shift 3
     # shellcheck disable=SC2086
-    ( cd "$tree" && "$bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $ex -p "$pr" ) \
+    ( cd "$tree" && "$bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $ex "$@" ) \
         2>&1 >/dev/null | grep -oE '[0-9.]+ t/s' | tail -1 | cut -d' ' -f1
 }
 
@@ -67,10 +69,15 @@ while IFS=$'\t' read -r prompt extra; do
             *) [ -e "$dir/$tok" ] && extra_abs="$extra_abs $dir/$tok" || extra_abs="$extra_abs $tok" ;;
         esac
     done
+    src=(-p "$prompt")
+    if [[ "$prompt" == @* ]]; then
+        [ -f "$dir/${prompt#@}" ] || die "prompt file $dir/${prompt#@} not found"
+        src=(--prompt-file "$dir/${prompt#@}")
+    fi
     # shellcheck disable=SC2086
-    ( cd "$wt"  && "$up_bin"    -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs -p "$prompt" ) > "$out/$i.up.txt"    2> "$out/$i.up.err" || true
+    ( cd "$wt"  && "$up_bin"    -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs "${src[@]}" ) > "$out/$i.up.txt"    2> "$out/$i.up.err" || true
     # shellcheck disable=SC2086
-    ( cd "$dir" && "$child_bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs -p "$prompt" ) > "$out/$i.child.txt" 2> "$out/$i.child.err" || true
+    ( cd "$dir" && "$child_bin" -m "$model" --temp 0 --nothink -n 128 ${SF_PARITY_FLAGS:-} $extra_abs "${src[@]}" ) > "$out/$i.child.txt" 2> "$out/$i.child.err" || true
     if [ ! -s "$out/$i.up.txt" ] || [ ! -s "$out/$i.child.txt" ]; then
         echo "  [FAIL] $i: $prompt  → a binary produced no output, see $out/$i.*.err"; fail=1
     elif cmp -s "$out/$i.up.txt" "$out/$i.child.txt"; then
@@ -89,9 +96,17 @@ while IFS=$'\t' read -r prompt extra; do
         if awk -v d="$d" 'BEGIN{exit !(d < -2)}'; then
             echo "        speed $i: single run $(printf '%+.1f' "$d")%, re-sampling"
             us="$ut"; cs="$ct"
-            for _ in 1 2 3 4; do
-                us="$us $(run_one "$wt" "$up_bin" "$prompt" "$extra_abs")"
-                cs="$cs $(run_one "$dir" "$child_bin" "$prompt" "$extra_abs")"
+            # A B B A ...: whichever binary runs right after the other starts
+            # colder, so a fixed order bills that to one side (a 20-token haiku
+            # read -30% in fixed order and +29% in this one).
+            for k in 1 2 3 4; do
+                if [ $((k % 2)) -eq 1 ]; then
+                    cs="$cs $(run_one "$dir" "$child_bin" "$extra_abs" "${src[@]}")"
+                    us="$us $(run_one "$wt" "$up_bin" "$extra_abs" "${src[@]}")"
+                else
+                    us="$us $(run_one "$wt" "$up_bin" "$extra_abs" "${src[@]}")"
+                    cs="$cs $(run_one "$dir" "$child_bin" "$extra_abs" "${src[@]}")"
+                fi
             done
             ut="$(median $us)"; ct="$(median $cs)"
             d="$(pct_delta "$ut" "$ct")"

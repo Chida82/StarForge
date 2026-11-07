@@ -11,6 +11,12 @@ with its separate 0731 support GGUF for `sf-ds4flash`, built-in MTP for
 GLM/Qwen, none for V4.1. Replace path placeholders with real absolute paths at
 bootstrap.
 
+A line `@path` takes its prompt from that file of the child, passed to both
+binaries as `--prompt-file`. Use it for a prompt long enough to prefill in
+batches: every one-line prompt is a few dozen tokens, which only tests the
+token-by-token path. `sf-ds4-1flash` has one of 5025 tokens
+(`tests/parity_prompt_5k.txt`); it adds a few minutes per run on SSD streaming.
+
 `SF_PARITY_FLAGS` is for options the machine needs rather than the prompt, and
 is appended to both binaries: a model larger than RAM only runs with
 `--ssd-streaming`, and without it every prompt fails as "a binary produced no

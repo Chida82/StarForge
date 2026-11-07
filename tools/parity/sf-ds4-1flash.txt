@@ -19,3 +19,6 @@ What is the capital of Australia? One word.
 Summarize the plot of Hamlet in exactly two sentences.
 A train leaves at 09:15 and arrives at 13:40 after two stops of 12 and 7 minutes. How long was it moving? Answer with the number of minutes only.	--think-level 25
 Write a haiku about compilers.	--nothink
+# 5025 chat tokens from the child's file: SSD layer sweeps, not token by token,
+# and 5025 % 2048 = 929 rows is the medium-sweep case of upstream 5382eac.
+@tests/parity_prompt_5k.txt
